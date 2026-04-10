@@ -1,0 +1,93 @@
+FROM osrf/ros:noetic-desktop-full
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+
+RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+
+RUN set -eux; \
+    if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+      sed -i \
+        -e 's|http://archive.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|http://security.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|https://archive.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|https://security.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        /etc/apt/sources.list.d/ubuntu.sources; \
+    elif [ -f /etc/apt/sources.list ]; then \
+      sed -i \
+        -e 's|http://archive.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|http://security.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|https://archive.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        -e 's|https://security.ubuntu.com/ubuntu|https://mirrors.sustech.edu.cn/ubuntu|g' \
+        /etc/apt/sources.list; \
+    else \
+      echo "No apt sources file found under /etc/apt" >&2; \
+      ls -R /etc/apt; \
+      exit 1; \
+    fi; \
+    apt-get update; \
+    apt-get install -y \
+      wget git python3 iputils-ping curl gnupg2 lsb-release unzip gdb\
+      gcc g++ cmake python3-venv rsync checkinstall \
+      python3-catkin-tools \
+      liburdfdom-dev liboctomap-dev libassimp-dev libeigen3-dev \
+      libboost-all-dev doxygen doxygen-latex libcgal-dev libglpk-dev \
+      libglfw3-dev libreadline-dev; \
+    sh -c '. /etc/lsb-release && echo "deb http://mirrors.ustc.edu.cn/ros/ubuntu/ $DISTRIB_CODENAME main" > /etc/apt/sources.list.d/ros-latest.list'; \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654; \
+    apt-get update; \
+    apt-get install -y \
+      ros-noetic-xacro \
+      ros-noetic-pybind11-catkin \
+      ros-noetic-rqt-multiplot \
+      ros-noetic-grid-map-msgs \
+      ros-noetic-grid-map \
+      ros-noetic-catkin \
+      ros-noetic-octomap-msgs \
+      ros-noetic-tf-conversions \
+      ros-noetic-pcl-ros \
+      ros-noetic-cmake-modules \
+      ros-noetic-robot-state-publisher \
+      ros-noetic-kdl-parser; \
+    mkdir -p /root/ocs2_ws/src
+
+WORKDIR /root/ocs2_ws/src
+RUN git clone https://github.com/leggedrobotics/ocs2.git && \
+    git clone --recurse-submodules https://github.com/leggedrobotics/hpp-fcl.git && \
+    git clone --recurse-submodules https://github.com/leggedrobotics/pinocchio.git && \
+    git clone https://github.com/leggedrobotics/ocs2_robotic_assets.git && \
+    git clone --depth 1 -b v1.1.01 https://github.com/raisimTech/raisimLib.git && \
+    mkdir -p /root/ocs2_ws/src/raisimLib/build && \
+    cd /root/ocs2_ws/src/raisimLib/build && \
+    cmake .. && \
+    make -j"$(nproc)" && \
+    make install && \
+    git clone https://github.com/leggedrobotics/elevation_mapping_cupy.git
+
+WORKDIR /root
+RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.7.0/onnxruntime-linux-x64-1.7.0.tgz && \
+    tar xf onnxruntime-linux-x64-1.7.0.tgz && \
+    mkdir -p /root/.local/bin /root/.local/include/onnxruntime /root/.local/lib /root/.local/share/cmake/onnxruntime && \
+    rsync -a /root/onnxruntime-linux-x64-1.7.0/include/ /root/.local/include/onnxruntime && \
+    rsync -a /root/onnxruntime-linux-x64-1.7.0/lib/ /root/.local/lib && \
+    rsync -a /root/ocs2_ws/src/ocs2/ocs2_mpcnet/ocs2_mpcnet_core/misc/onnxruntime/cmake/ /root/.local/share/cmake/onnxruntime && \
+    rm onnxruntime-linux-x64-1.7.0.tgz && \
+    echo "export onnxruntime_DIR=/root/.local/" >> /root/.bashrc && \
+    echo "export LD_LIBRARY_PATH=/root/.local/lib:\${LD_LIBRARY_PATH}" >> /root/.bashrc
+
+WORKDIR /root/ocs2_ws
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash"&& \
+    catkin init && \
+    catkin config --extend /opt/ros/noetic && \
+    catkin config -DCMAKE_BUILD_TYPE=RelWithDebInfo && \
+    catkin config --skiplist \
+      ocs2_mpcnet_core \
+      ocs2_mpcnet \
+      ocs2_ballbot_mpcnet \
+      ocs2_legged_robot_mpcnet \
+      segmented_planes_terrain_model \
+      ocs2_anymal_commands && \
+    catkin build hpp-fcl pinocchio ocs2_robotic_assets ocs2_mobile_manipulator_ros
+
+RUN echo "source /root/ocs2_ws/devel/setup.bash" >> /root/.bashrc
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,1111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="WH00003">
+  <link
+    name="base">
+    <inertial>
+      <origin
+        xyz="-0.22311 0.002513 -0.021108"
+        rpy="0 0 0" />
+      <mass
+        value="86.1" />
+      <inertia
+        ixx="2.53797"
+        ixy="-0.010418"
+        ixz="0.005338"
+        iyy="4.222258"
+        iyz="0.000861"
+        izz="5.720484" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/base.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+   <collision>
+      <origin
+        xyz="-0.213189 0.002561 -0.115572"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.7 0.5 0.15" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="waist_pitch1_link">
+    <inertial>
+      <origin
+        xyz="0.002729 0.002906 0.20961"
+        rpy="0 0 0" />
+      <mass
+        value="5" />
+      <inertia
+        ixx="0.133655"
+        ixy="1E-05"
+        ixz="0.004875"
+        iyy="0.116165"
+        iyz="-0.000765"
+        izz="0.040975" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/waist_pitch1_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0.25"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.1 0.2 0.25" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="waist_pitch1_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0048067 0.088251"
+      rpy="0 0 0" />
+    <parent
+      link="base" />
+    <child
+      link="waist_pitch1_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.3265"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="waist_pitch2_link">
+    <inertial>
+      <origin
+        xyz="9E-06 -0.007058 0.18252"
+        rpy="0 0 0" />
+      <mass
+        value="12" />
+      <inertia
+        ixx="0.32496"
+        ixy="-1.2E-05"
+        ixz="2.4E-05"
+        iyy="0.33588"
+        iyz="-1.2E-05"
+        izz="0.032928" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/waist_pitch2_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0.2"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.1 0.2 0.14"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="waist_pitch2_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.365"
+      rpy="0 0 0" />
+    <parent
+      link="waist_pitch1_link" />
+    <child
+      link="waist_pitch2_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="2.3736"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="waist_pitch3_link">
+    <inertial>
+      <origin
+        xyz="0 0.002265 0.073055"
+        rpy="0 0 0" />
+      <mass
+        value="6.5" />
+      <inertia
+        ixx="0.088121"
+        ixy="0"
+        ixz="0"
+        iyy="0.071182"
+        iyz="0.001190"
+        izz="0.049680" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/waist_pitch3_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0.09"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.15 0.24 0.15" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="waist_pitch3_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.365"
+      rpy="0 0 0" />
+    <parent
+      link="waist_pitch2_link" />
+    <child
+      link="waist_pitch3_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.6581"
+      upper="1.6581"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="waist_yaw_link">
+    <inertial>
+      <origin
+        xyz="-0.011579 0 -0.049379"
+        rpy="0 0 0" />
+      <mass
+        value="10.42" />
+      <inertia
+        ixx="0.153393"
+        ixy="0"
+        ixz="0.002584"
+        iyy="0.110806"
+        iyz="0"
+        izz="0.122675" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/waist_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.05"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.2 0.3 0.3" />
+      </geometry>
+    </collision>
+  </link>
+<!-- 新增了一个link和joint，目的是为了让waist_yaw_link保持竖直，约束waist_roll和waist_pitch的运动，使得waist_yaw_link的z轴始终垂直向上 -->
+  <link name="waist_yaw_upright_link"/>
+  <joint name="waist_yaw_upright_joint" type="fixed">
+    <parent link="waist_yaw_link"/>
+    <child link="waist_yaw_upright_link"/>
+    <origin xyz="0 0 0.20" rpy="0 0 0"/>
+  </joint>
+
+  <joint
+    name="waist_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.411"
+      rpy="0 0 0" />
+    <parent
+      link="waist_pitch3_link" />
+    <child
+      link="waist_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_shoulder_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.004303 0.020182 0.002701"
+        rpy="0 0 0" />
+      <mass
+        value="0.2865" />
+      <inertia
+        ixx="0.000347"
+        ixy="6.8E-05"
+        ixz="-8E-06"
+        iyy="0.000481"
+        iyz="1.3E-05"
+        izz="0.000521" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_shoulder_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 -0.02 0.00575"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.05575"
+          length="0.05" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.2015 0"
+      rpy="0 0 0" />
+    <parent
+      link="waist_yaw_link" />
+    <child
+      link="left_shoulder_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.3562"
+      upper="2.3562"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_shoulder_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.000341 0.000486 -0.012205"
+        rpy="0 0 0" />
+      <mass
+        value="2.2119" />
+      <inertia
+        ixx="0.003563"
+        ixy="0"
+        ixz="5.8E-05"
+        iyy="0.003701"
+        iyz="7.1E-05"
+        izz="0.0024" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_shoulder_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0 0.0565 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_shoulder_pitch_link" />
+    <child
+      link="left_shoulder_roll_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.24435"
+      upper="2.8972"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_shoulder_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.000815 -0.000629 -0.080506"
+        rpy="0 0 0" />
+      <mass
+        value="2.5816" />
+      <inertia
+        ixx="0.008142"
+        ixy="7.2E-05"
+        ixz="0.000292"
+        iyy="0.008029"
+        iyz="-0.000289"
+        izz="0.003462" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_shoulder_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.055"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.15" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_shoulder_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0755"
+      rpy="0 0 0" />
+    <parent
+      link="left_shoulder_roll_link" />
+    <child
+      link="left_shoulder_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.0944"
+      upper="2.0944"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_elbow_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.011064 0.000878 -0.009088"
+        rpy="0 0 0" />
+      <mass
+        value="1.5621" />
+      <inertia
+        ixx="0.001614"
+        ixy="-1.6E-05"
+        ixz="0.000433"
+        iyy="0.002162"
+        iyz="6E-06"
+        izz="0.001743" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_elbow_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_elbow_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0.031 0.0001 -0.2005"
+      rpy="0 0 0" />
+    <parent
+      link="left_shoulder_yaw_link" />
+    <child
+      link="left_elbow_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.0821"
+      upper="1.5708"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_wrist_roll_link">
+    <inertial>
+      <origin
+        xyz="0.095727 0 -0.000767"
+        rpy="0 0 0" />
+      <mass
+        value="1.1706" />
+      <inertia
+        ixx="0.000842"
+        ixy="0"
+        ixz="-3.2E-05"
+        iyy="0.003306"
+        iyz="0"
+        izz="0.003156" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_wrist_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.08 0 0"
+        rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.18" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_wrist_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0.058 0 -0.030788"
+      rpy="0 0 0" />
+    <parent
+      link="left_elbow_pitch_link" />
+    <child
+      link="left_wrist_roll_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.1416"
+      upper="3.1416"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_wrist_yaw_link">
+    <inertial>
+      <origin
+        xyz="-0.000269 -0.004372 -0.000550"
+        rpy="0 0 0" />
+      <mass
+        value="2.5678" />
+      <inertia
+        ixx="0.002237"
+        ixy="-0.000026"
+        ixz="0.000000"
+        iyy="0.001864"
+        iyz="0.000069"
+        izz="0.002157" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_wrist_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.08" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_wrist_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.234 0 -0.00021166"
+      rpy="0 0 0" />
+    <parent
+      link="left_wrist_roll_link" />
+    <child
+      link="left_wrist_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.7854"
+      upper="0.7854"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="left_wrist_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.031811 0.031463 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.1" />
+      <inertia
+        ixx="3.8E-05"
+        ixy="2.8E-05"
+        ixz="0"
+        iyy="0.000109"
+        iyz="0"
+        izz="0.000117" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/left_wrist_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.065 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.01 0.03 0.025" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_wrist_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="left_wrist_yaw_link" />
+    <child
+      link="left_wrist_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_shoulder_pitch_link">
+    <inertial>
+      <origin
+        xyz="-0.004303 -0.020182 0.002701"
+        rpy="0 0 0" />
+      <mass
+        value="0.2865" />
+      <inertia
+        ixx="0.000347"
+        ixy="-6.8E-05"
+        ixz="-8E-06"
+        iyy="0.000481"
+        iyz="-1.3E-05"
+        izz="0.000521" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_shoulder_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0.02 0.00575"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.05575"
+          length="0.05" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.2015 0"
+      rpy="0 0 0" />
+    <parent
+      link="waist_yaw_link" />
+    <child
+      link="right_shoulder_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-2.3562"
+      upper="2.3562"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_shoulder_roll_link">
+    <inertial>
+      <origin
+        xyz="-0.000341 0.000486 -0.012205"
+        rpy="0 0 0" />
+      <mass
+        value="2.2119" />
+      <inertia
+        ixx="0.003563"
+        ixy="0"
+        ixz="5.8E-05"
+        iyy="0.003701"
+        iyz="7.1E-05"
+        izz="0.0024" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_shoulder_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0 -0.0565 0"
+      rpy="0 0 0" />
+    <parent
+      link="right_shoulder_pitch_link" />
+    <child
+      link="right_shoulder_roll_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-2.8972"
+      upper="0.24435"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_shoulder_yaw_link">
+    <inertial>
+      <origin
+        xyz="0.000815 0.000629 -0.080506"
+        rpy="0 0 0" />
+      <mass
+        value="2.5816" />
+      <inertia
+        ixx="0.008142"
+        ixy="-7.2E-05"
+        ixz="0.000292"
+        iyy="0.008029"
+        iyz="0.000289"
+        izz="0.003462" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_shoulder_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 -0.055"
+        rpy="0 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.15" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_shoulder_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.0755"
+      rpy="0 0 0" />
+    <parent
+      link="right_shoulder_roll_link" />
+    <child
+      link="right_shoulder_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.0944"
+      upper="2.0944"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_elbow_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.011064 -0.000878 -0.009088"
+        rpy="0 0 0" />
+      <mass
+        value="1.5621" />
+      <inertia
+        ixx="0.001614"
+        ixy="1.6E-05"
+        ixz="0.000433"
+        iyy="0.002162"
+        iyz="-6E-06"
+        izz="0.001743" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_elbow_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.07" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_elbow_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0.031 -0.0001 -0.2005"
+      rpy="0 0 0" />
+    <parent
+      link="right_shoulder_yaw_link" />
+    <child
+      link="right_elbow_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.0821"
+      upper="1.5708"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_wrist_roll_link">
+    <inertial>
+      <origin
+        xyz="0.095727 0 -0.000344"
+        rpy="0 0 0" />
+      <mass
+        value="1.1706" />
+      <inertia
+        ixx="0.000997"
+        ixy="0"
+        ixz="-3.7E-05"
+        iyy="0.003916"
+        iyz="0"
+        izz="0.003739" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_wrist_roll_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.08 0 0"
+        rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.18" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_wrist_roll_joint"
+    type="revolute">
+    <origin
+      xyz="0.058 0 -0.031212"
+      rpy="0 0 0" />
+    <parent
+      link="right_elbow_pitch_link" />
+    <child
+      link="right_wrist_roll_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.1416"
+      upper="3.1416"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_wrist_yaw_link">
+    <inertial>
+      <origin
+        xyz="-0.000269  0.004372 -0.000550"
+        rpy="0 0 0" />
+      <mass
+        value="2.5678" />
+      <inertia
+        ixx="0.002237"
+        ixy="0.000026"
+        ixz="0.000000"
+        iyy="0.001864"
+        iyz="-0.000069"
+        izz="0.002157" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_wrist_yaw_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder
+          radius="0.042"
+          length="0.08" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_wrist_yaw_joint"
+    type="revolute">
+    <origin
+      xyz="0.234 0 0.00021166"
+      rpy="0 0 0" />
+    <parent
+      link="right_wrist_roll_link" />
+    <child
+      link="right_wrist_yaw_link" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.7854"
+      upper="0.7854"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="right_wrist_pitch_link">
+    <inertial>
+      <origin
+        xyz="0.031811 -0.031463 0"
+        rpy="0 0 0" />
+      <mass
+        value="0.1" />
+      <inertia
+        ixx="3.8E-05"
+        ixy="-2.8E-05"
+        ixz="0"
+        iyy="0.000109"
+        iyz="0"
+        izz="0.000117" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://wh00003_sldasm/meshes/right_wrist_pitch_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.065 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box
+          size="0.01 0.03 0.025" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_wrist_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0"
+      rpy="0 0 0" />
+    <parent
+      link="right_wrist_yaw_link" />
+    <child
+      link="right_wrist_pitch_link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="0"
+      velocity="0" />
+  </joint>
+</robot>
