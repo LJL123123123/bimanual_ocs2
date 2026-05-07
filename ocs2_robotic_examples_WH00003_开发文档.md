@@ -1026,3 +1026,16 @@ MobileManipulatorTarget
 ```
 
 ---
+
+# 26.5.7
+
+```
+colcon build --packages-up-to ocs2_mobile_manipulator_ros --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+#if use zsh 
+source install/setup.zsh
+# or if use bash
+source install/setup.bash
+
+ros2 launch ocs2_mobile_manipulator_ros manipulator_mabi_mobile_wh04aa_sldasm.launch.py
+```

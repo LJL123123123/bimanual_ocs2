@@ -1,190 +1,83 @@
-From 7d65ef3378c278b7f4c737139666b720918ae96e Mon Sep 17 00:00:00 2001
+From d54ef6edf0feaa6cba7fe782e22844c9d9525d15 Mon Sep 17 00:00:00 2001
 From: LJL123123123 <1543850306@qq.com>
-Date: Mon, 20 Apr 2026 13:45:46 +0800
-Subject: [PATCH] wh04aa
+Date: Thu, 7 May 2026 14:28:10 +0800
+Subject: [PATCH] wh04aa_ros2
 
 
-diff --git a/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp b/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
-index 41bf223a9bdb5ce9d439ad32f5151325478bda66..31324d20865a2652f3bc387b16686ccf870b33cc 100644
---- a/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
-+++ b/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
-@@ -37,11 +37,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- #include <pinocchio/multibody/geometry.hpp>
- #include <pinocchio/multibody/model.hpp>
- #include <pinocchio/parsers/urdf.hpp>
-+#include <pinocchio/utils/file-explorer.hpp>
-+
-+#include <algorithm>
-+#include <fstream>
- 
- #include <urdf_parser/urdf_parser.h>
- 
- namespace ocs2 {
- 
-+namespace {
-+std::vector<std::string> getPinocchioPackageDirsFromRosPackagePath() {
-+  auto rosPaths = pinocchio::rosPaths();
-+  std::vector<std::string> packageDirs;
-+  packageDirs.reserve(rosPaths.size() * 2);
-+
-+  for (auto& path : rosPaths) {
-+    if (path.empty()) {
-+      continue;
-+    }
-+
-+    packageDirs.push_back(path);
-+
-+    const std::string packageXmlPath = path + "/package.xml";
-+    std::ifstream packageXml(packageXmlPath);
-+    if (packageXml.good()) {
-+      const auto lastSlash = path.find_last_of('/');
-+      if (lastSlash != std::string::npos && lastSlash > 0) {
-+        packageDirs.push_back(path.substr(0, lastSlash));
-+      }
-+    }
-+  }
-+
-+  std::sort(packageDirs.begin(), packageDirs.end());
-+  packageDirs.erase(std::unique(packageDirs.begin(), packageDirs.end()), packageDirs.end());
-+  return packageDirs;
-+}
-+}  // namespace
-+
- /******************************************************************************************************/
- /******************************************************************************************************/
- /******************************************************************************************************/
-@@ -99,7 +132,8 @@ void PinocchioGeometryInterface::buildGeomFromPinocchioInterface(const Pinocchio
-   urdfAsXml->Accept(&printer);
-   const std::stringstream urdfAsStringStream(printer.Str());
- 
--  pinocchio::urdf::buildGeom(pinocchioInterface.getModel(), urdfAsStringStream, pinocchio::COLLISION, geomModel);
-+  const auto packageDirs = getPinocchioPackageDirsFromRosPackagePath();
-+  pinocchio::urdf::buildGeom(pinocchioInterface.getModel(), urdfAsStringStream, pinocchio::COLLISION, geomModel, packageDirs);
- }
- /******************************************************************************************************/
- /******************************************************************************************************/
-diff --git a/ocs2_pinocchio/ocs2_sphere_approximation/src/PinocchioSphereInterface.cpp b/ocs2_pinocchio/ocs2_sphere_approximation/src/PinocchioSphereInterface.cpp
-index 17f562deb7a4a4a549b58de0b8ba1ec05740d3cc..c69a556c336740d6d14cc6ce23202c8beebb936b 100644
---- a/ocs2_pinocchio/ocs2_sphere_approximation/src/PinocchioSphereInterface.cpp
-+++ b/ocs2_pinocchio/ocs2_sphere_approximation/src/PinocchioSphereInterface.cpp
-@@ -32,6 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- #include <pinocchio/algorithm/geometry.hpp>
- #include <pinocchio/multibody/geometry.hpp>
- #include <pinocchio/parsers/urdf.hpp>
-+#include <pinocchio/utils/file-explorer.hpp>
-+
-+#include <algorithm>
-+#include <fstream>
- 
- #include <urdf_parser/urdf_parser.h>
- 
-@@ -39,6 +43,38 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- 
- namespace ocs2 {
- 
-+namespace {
-+std::vector<std::string> getPinocchioPackageDirsFromRosPackagePath() {
-+  auto rosPaths = pinocchio::rosPaths();
-+  std::vector<std::string> packageDirs;
-+  packageDirs.reserve(rosPaths.size() * 2);
-+
-+  for (auto& path : rosPaths) {
-+    if (path.empty()) {
-+      continue;
-+    }
-+
-+    // Add the path itself (useful when it already points to a search root like /opt/ros/noetic/share)
-+    packageDirs.push_back(path);
-+
-+    // If ROS_PACKAGE_PATH contains a concrete package directory, also add its parent directory.
-+    // Pinocchio's URDF parser resolves `package://<pkg>/...` by searching for <pkg> under packageDirs.
-+    const std::string packageXmlPath = path + "/package.xml";
-+    std::ifstream packageXml(packageXmlPath);
-+    if (packageXml.good()) {
-+      const auto lastSlash = path.find_last_of('/');
-+      if (lastSlash != std::string::npos && lastSlash > 0) {
-+        packageDirs.push_back(path.substr(0, lastSlash));
-+      }
-+    }
-+  }
-+
-+  std::sort(packageDirs.begin(), packageDirs.end());
-+  packageDirs.erase(std::unique(packageDirs.begin(), packageDirs.end()), packageDirs.end());
-+  return packageDirs;
-+}
-+}  // namespace
-+
- /******************************************************************************************************/
- /******************************************************************************************************/
- /******************************************************************************************************/
-@@ -116,7 +152,8 @@ void PinocchioSphereInterface::buildGeomFromPinocchioInterface(const PinocchioIn
-   urdfAsXml->Accept(&printer);
-   const std::stringstream urdfAsStringStream(printer.Str());
- 
--  pinocchio::urdf::buildGeom(pinocchioInterface.getModel(), urdfAsStringStream, pinocchio::COLLISION, geomModel);
-+  const auto packageDirs = getPinocchioPackageDirsFromRosPackagePath();
-+  pinocchio::urdf::buildGeom(pinocchioInterface.getModel(), urdfAsStringStream, pinocchio::COLLISION, geomModel, packageDirs);
- }
- 
- /******************************************************************************************************/
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt b/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt
-index 9d010712d1a9834dd0f678e2e559610765895cad..e3224cdd2cb98cde7c52a2e31585dd38fa6f7c6e 100644
+index 51dfa16ddac93d5867890795b9aa795f8d81e135..56ada5367e5f0f6a1f5935e1652138fe80b22a0e 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt
-@@ -87,6 +87,8 @@ add_library(${PROJECT_NAME}
-   src/dynamics/FloatingArmManipulatorDynamics.cpp
-   src/dynamics/FullyActuatedFloatingArmManipulatorDynamics.cpp
-   src/MobileManipulatorInterface.cpp
+@@ -29,6 +29,8 @@ add_library(${PROJECT_NAME}
+   src/MobileManipulatorPreComputation.cpp
+   src/MobileManipulatorPinocchioMapping.cpp
+   src/constraint/EndEffectorConstraint.cpp
 +  src/constraint/LinkVerticalConstraint.cpp
 +  src/constraint/ComPolygonConstraint.cpp
- )
- add_dependencies(${PROJECT_NAME}
-   ${catkin_EXPORTED_TARGETS}
-@@ -98,6 +100,24 @@ target_link_libraries(${PROJECT_NAME}
- )
- target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
- 
-+# Small utility: print state/input index layout for a given task+URDF.
-+add_executable(ocs2_mobile_manipulator_print_layout
-+  src/tools/print_state_layout.cpp
-+)
-+add_dependencies(ocs2_mobile_manipulator_print_layout
-+  ${catkin_EXPORTED_TARGETS}
-+)
-+target_include_directories(ocs2_mobile_manipulator_print_layout PRIVATE
-+  ${PROJECT_BINARY_DIR}/include
-+)
-+target_link_libraries(ocs2_mobile_manipulator_print_layout
-+  ${PROJECT_NAME}
-+  ${Boost_LIBRARIES}
-+  ${catkin_LIBRARIES}
-+  ${pinocchio_LIBRARIES}
-+)
-+target_compile_options(ocs2_mobile_manipulator_print_layout PRIVATE ${FLAGS})
-+
- ####################
- ## Clang tooling ###
- ####################
-@@ -122,6 +142,9 @@ install(TARGETS ${PROJECT_NAME}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
-+install(TARGETS ocs2_mobile_manipulator_print_layout
-+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-+)
- install(DIRECTORY include/${PROJECT_NAME}/
-   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
- )
+   src/dynamics/WheelBasedMobileManipulatorDynamics.cpp
+   src/dynamics/DefaultManipulatorDynamics.cpp
+   src/dynamics/FloatingArmManipulatorDynamics.cpp
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt.rej b/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt.rej
+new file mode 100644
+index 0000000000000000000000000000000000000000..b88201175965c91646a011369fde7a8b6d093164
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt.rej
+@@ -0,0 +1,45 @@
++diff a/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt b/ocs2_robotic_examples/ocs2_mobile_manipulator/CMakeLists.txt	(rejected hunks)
++@@ -87,6 +87,8 @@ add_library(${PROJECT_NAME}
++   src/dynamics/FloatingArmManipulatorDynamics.cpp
++   src/dynamics/FullyActuatedFloatingArmManipulatorDynamics.cpp
++   src/MobileManipulatorInterface.cpp
+++  src/constraint/LinkVerticalConstraint.cpp
+++  src/constraint/ComPolygonConstraint.cpp
++ )
++ add_dependencies(${PROJECT_NAME}
++   ${catkin_EXPORTED_TARGETS}
++@@ -98,6 +100,24 @@ target_link_libraries(${PROJECT_NAME}
++ )
++ target_compile_options(${PROJECT_NAME} PUBLIC ${FLAGS})
++ 
+++# Small utility: print state/input index layout for a given task+URDF.
+++add_executable(ocs2_mobile_manipulator_print_layout
+++  src/tools/print_state_layout.cpp
+++)
+++add_dependencies(ocs2_mobile_manipulator_print_layout
+++  ${catkin_EXPORTED_TARGETS}
+++)
+++target_include_directories(ocs2_mobile_manipulator_print_layout PRIVATE
+++  ${PROJECT_BINARY_DIR}/include
+++)
+++target_link_libraries(ocs2_mobile_manipulator_print_layout
+++  ${PROJECT_NAME}
+++  ${Boost_LIBRARIES}
+++  ${catkin_LIBRARIES}
+++  ${pinocchio_LIBRARIES}
+++)
+++target_compile_options(ocs2_mobile_manipulator_print_layout PRIVATE ${FLAGS})
+++
++ ####################
++ ## Clang tooling ###
++ ####################
++@@ -122,6 +142,9 @@ install(TARGETS ${PROJECT_NAME}
++   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
++   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
++ )
+++install(TARGETS ocs2_mobile_manipulator_print_layout
+++  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+++)
++ install(DIRECTORY include/${PROJECT_NAME}/
++   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
++ )
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/config/AMRS1/task.info b/ocs2_robotic_examples/ocs2_mobile_manipulator/config/AMRS1/task.info
 new file mode 100644
-index 0000000000000000000000000000000000000000..b92b584174ad9fcd9bc7f80aa5d934744b8f78a2
+index 0000000000000000000000000000000000000000..86e723bac433ba0daa0ea784104455411c4491db
 --- /dev/null
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/config/AMRS1/task.info
 @@ -0,0 +1,370 @@
 +; robot model meta-information
 +model_information {
 +  manipulatorModelType     1      // 0: Default-arm, 1: Wheel-based manipulator, 2: Floating-arm manipulator, 3: Fully actuated floating-arm manipulator
-+  
++
 +  ; motion joints in the URDF to consider fixed
 +  removeJoints {
 +  }
@@ -260,7 +153,7 @@ index 0000000000000000000000000000000000000000..b92b584174ad9fcd9bc7f80aa5d93474
 +  timeHorizon                     1.0   ; [s]
 +  solutionTimeWindow              0.2   ; [s]
 +  coldStart                       false
-+  
++
 +  debugPrint                      false
 +
 +  mpcDesiredFrequency             100   ; [Hz]
@@ -399,7 +292,7 @@ index 0000000000000000000000000000000000000000..b92b584174ad9fcd9bc7f80aa5d93474
 +}
 +
 +selfCollision
-+{ 
++{
 +  ; activate self-collision constraint
 +  activate  true
 +
@@ -432,7 +325,7 @@ index 0000000000000000000000000000000000000000..b92b584174ad9fcd9bc7f80aa5d93474
 +
 +; Only applied for arm joints: limits parsed from URDF
 +jointPositionLimits
-+{ 
++{
 +  ; activate constraint
 +  activate  false
 +
@@ -3430,7 +3323,7 @@ index 0000000000000000000000000000000000000000..698f5d0917069692537982f7b8147956
 +  }
 +}
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/MobileManipulatorInterface.h b/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/MobileManipulatorInterface.h
-index dacd6b9d3ac9692debda09ba92ddbedf53416a2d..e1563eaddf10c9fb65be4cb4de786e414c3b0e0e 100644
+index dacd6b9d3ac9692debda09ba92ddbedf53416a2d..0fba28aaf14219a9202f952d32c0ab24281156ba 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/MobileManipulatorInterface.h
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/MobileManipulatorInterface.h
 @@ -41,6 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -3471,9 +3364,9 @@ index dacd6b9d3ac9692debda09ba92ddbedf53416a2d..e1563eaddf10c9fb65be4cb4de786e41
 +                                                       bool usePreComputation, const std::string& libraryFolder,
 +                                                       bool recompileLibraries);
 +  //新增com多边形约束
-+  std::unique_ptr<StateCost> getComPolygonConstraint(const PinocchioInterface& pinocchioInterface,
-+                                                   const std::string& taskFile,
-+                                                   const std::string& prefix);
++  std::unique_ptr<StateConstraint> getComPolygonConstraint(const PinocchioInterface& pinocchioInterface,
++                                                           const std::string& taskFile,
++                                                           const std::string& prefix);
 +
 +  bool enableDualEeTarget_ = false;
 +  std::string rightEeFrame_;
@@ -3543,7 +3436,7 @@ index 0000000000000000000000000000000000000000..749720f8f178a1ede3879638ca69e831
 +}  // namespace ocs2
 \ No newline at end of file
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/constraint/EndEffectorConstraint.h b/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/constraint/EndEffectorConstraint.h
-index dfc178bffde97ef2b0bfb1222e125f6d683d60e5..a39e980b571a6b7b3a1cc9be42263c1724e57d3e 100644
+index dfc178bffde97ef2b0bfb1222e125f6d683d60e5..e7d44a38968744a030c25fcf0e3c5a14c0a09107 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/constraint/EndEffectorConstraint.h
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/include/ocs2_mobile_manipulator/constraint/EndEffectorConstraint.h
 @@ -1,32 +1,3 @@
@@ -3586,7 +3479,7 @@ index dfc178bffde97ef2b0bfb1222e125f6d683d60e5..a39e980b571a6b7b3a1cc9be42263c17
 -  EndEffectorConstraint(const EndEffectorKinematics<scalar_t>& endEffectorKinematics, const ReferenceManager& referenceManager);
 +  EndEffectorConstraint(const EndEffectorKinematics<scalar_t>& endEffectorKinematics,
 +                        const ReferenceManager& referenceManager,
-+                        size_t targetStateOffset);
++                        size_t targetStateOffset = 0);
 +
    ~EndEffectorConstraint() override = default;
 -  EndEffectorConstraint* clone() const override { return new EndEffectorConstraint(*endEffectorKinematicsPtr_, *referenceManagerPtr_); }
@@ -3706,7 +3599,7 @@ index 0000000000000000000000000000000000000000..1c99d9a0c29fa73b78268d1b53a13359
 +}  // namespace ocs2
 \ No newline at end of file
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator/src/MobileManipulatorInterface.cpp b/ocs2_robotic_examples/ocs2_mobile_manipulator/src/MobileManipulatorInterface.cpp
-index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..d42e5d2d40c0ca4b36c07b963bbafa438f541cba 100644
+index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..93a75cd6bc4d77628be961e29db437f2913622d4 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator/src/MobileManipulatorInterface.cpp
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator/src/MobileManipulatorInterface.cpp
 @@ -63,6 +63,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -3798,10 +3691,10 @@ index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..d42e5d2d40c0ca4b36c07b963bbafa43
 +  bool activateComPolygon = false;
 +  loadData::loadPtreeValue(pt, activateComPolygon, "comPolygon.activate", true);
 +  if (activateComPolygon) {
-+    problem_.stateSoftConstraintPtr->add(
-+        "comPolygon",
-+        getComPolygonConstraint(*pinocchioInterfacePtr_, taskFile, "comPolygon"));
-+  }                                                                                  
++    problem_.stateInequalityConstraintPtr->add(
++      "comPolygon",
++      getComPolygonConstraint(*pinocchioInterfacePtr_, taskFile, "comPolygon"));
++  }
    // self-collision avoidance constraint
    bool activateSelfCollision = true;
    loadData::loadPtreeValue(pt, activateSelfCollision, "selfCollision.activate", true);
@@ -3849,7 +3742,7 @@ index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..d42e5d2d40c0ca4b36c07b963bbafa43
    }
  
    std::vector<std::unique_ptr<PenaltyBase>> penaltyArray(6);
-@@ -436,5 +499,98 @@ std::unique_ptr<StateInputCost> MobileManipulatorInterface::getJointLimitSoftCon
+@@ -436,5 +499,88 @@ std::unique_ptr<StateInputCost> MobileManipulatorInterface::getJointLimitSoftCon
    return boxConstraints;
  }
  
@@ -3893,7 +3786,7 @@ index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..d42e5d2d40c0ca4b36c07b963bbafa43
 +}
 +
 +// 新增com多边形约束
-+std::unique_ptr<StateCost> MobileManipulatorInterface::getComPolygonConstraint(
++std::unique_ptr<StateConstraint> MobileManipulatorInterface::getComPolygonConstraint(
 +    const PinocchioInterface& pinocchioInterface,
 +    const std::string& taskFile,
 +    const std::string& prefix) {
@@ -3922,28 +3815,18 @@ index 1fdee8f26bbd10b287c3a54cec6cb9c43a42d2a0..d42e5d2d40c0ca4b36c07b963bbafa43
 +    vertices[i] = vertexOffsets.row(i).transpose();
 +  }
 +
-+  scalar_t mu = 50.0;
 +  scalar_t finiteDifferenceEps = 1e-6;
 +
 +  std::cerr << "\n #### " << prefix << " Settings: ";
 +  std::cerr << "\n #### =============================================================================\n";
-+  loadData::loadPtreeValue(pt, mu, prefix + ".mu", true);
 +  loadData::loadPtreeValue(pt, finiteDifferenceEps, prefix + ".finiteDifferenceEps", true);
 +  std::cerr << " #### frame: " << polygonFrame << "\n";
 +  std::cerr << " #### numVertices: " << numVertices << "\n";
-+  std::cerr << " #### mu: " << mu << "\n";
 +  std::cerr << " #### finiteDifferenceEps: " << finiteDifferenceEps << "\n";
 +  std::cerr << " #### =============================================================================\n";
 +
-+  auto constraint = std::make_unique<ComPolygonConstraint>(
++  return std::make_unique<ComPolygonConstraint>(
 +      pinocchioInterface, manipulatorModelInfo_, polygonFrame, vertices, finiteDifferenceEps);
-+
-+  std::vector<std::unique_ptr<PenaltyBase>> penaltyArray(numVertices);
-+  for (int i = 0; i < numVertices; ++i) {
-+    penaltyArray[i] = std::make_unique<OneSidedQuadraticPenalty>(mu);
-+  }
-+
-+  return std::make_unique<StateSoftConstraint>(std::move(constraint), std::move(penaltyArray));
 +}
 +
  }  // namespace mobile_manipulator
@@ -4487,48 +4370,98 @@ index 0000000000000000000000000000000000000000..1ad5668de5b070a38be4ef78de280972
 +  return 0;
 +}
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt
-index 6831c060613e4f5c31676361d1a12da3b097f31d..5cc94ec62c208d10ffa554610231c7e65fa4bdcd 100644
+index 3430a839a8dfb05bb6d65aecad25152ef857aa32..5c82cb55c89208735a5cb5e9ad0157ff4ba04865 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt
-@@ -6,12 +6,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
- 
- set(CATKIN_PACKAGE_DEPENDENCIES
-   roslib
-+  rospy
-   tf
+@@ -8,6 +8,7 @@ find_package(rclcpp REQUIRED)
+ find_package(tf2_ros REQUIRED)
+ find_package(sensor_msgs REQUIRED)
+ find_package(geometry_msgs REQUIRED)
++find_package(interactive_markers REQUIRED)
+ find_package(visualization_msgs REQUIRED)
+ find_package(urdf REQUIRED)
+ find_package(kdl_parser REQUIRED)
+@@ -34,6 +35,7 @@ set(dependencies
+   tf2_ros
+   sensor_msgs
+   geometry_msgs
++  interactive_markers
+   visualization_msgs
    urdf
    kdl_parser
-   robot_state_publisher
-   visualization_msgs
-   geometry_msgs
-+  ocs2_msgs
-   ocs2_ros_interfaces
-   ocs2_core
-   ocs2_ddp
-@@ -157,6 +159,13 @@ install(
-     mobile_manipulator_target
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
- )
-+
-+catkin_install_python(
-+  PROGRAMS
-+    scripts/vr_ar_target_to_mpc_target.py
-+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-+)
-+
- install(DIRECTORY launch rviz
-   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
- )
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt.rej b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt.rej
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb9a1f37ed999cd8830ceb9e1f4867332e3eaac8
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt.rej
+@@ -0,0 +1,30 @@
++diff a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/CMakeLists.txt	(rejected hunks)
++@@ -6,12 +6,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
++ 
++ set(CATKIN_PACKAGE_DEPENDENCIES
++   roslib
+++  rospy
++   tf
++   urdf
++   kdl_parser
++   robot_state_publisher
++   visualization_msgs
++   geometry_msgs
+++  ocs2_msgs
++   ocs2_ros_interfaces
++   ocs2_core
++   ocs2_ddp
++@@ -157,6 +159,13 @@ install(
++     mobile_manipulator_target
++   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
++ )
+++
+++catkin_install_python(
+++  PROGRAMS
+++    scripts/vr_ar_target_to_mpc_target.py
+++  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+++)
+++
++ install(DIRECTORY launch rviz
++   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
++ )
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/include/ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/include/ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h
-index aeb71df61724580b61cead8bf17a595e021ac380..7b6c91670141344708c64fae48454e86a0665fd7 100644
+index 17c56aa1c4836483bea2abcb48aa7953170cb814..00813804b2e44fe1da42ebadc51b928fa64a7129 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/include/ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/include/ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h
-@@ -70,6 +70,8 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
-   ros::Publisher stateOptimizedPosePublisher_;
+@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  
+ #include <geometry_msgs/msg/pose_array.hpp>
+ #include <sensor_msgs/msg/joint_state.hpp>
++#include <visualization_msgs/msg/marker_array.hpp>
++
++#include <Eigen/Core>
+ 
+ namespace ocs2 {
+ namespace mobile_manipulator {
+@@ -68,6 +71,8 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
+                                  const TargetTrajectories& targetTrajectories);
+   void publishOptimizedTrajectory(const rclcpp::Time& timeStamp,
+                                   const PrimalSolution& policy);
++    void publishComAndSupportPolygon(const rclcpp::Time& timeStamp,
++                                     const SystemObservation& observation);
+ 
+   rclcpp::Node::SharedPtr node_;
+   PinocchioInterface pinocchioInterface_;
+@@ -82,7 +87,16 @@ class MobileManipulatorDummyVisualization final : public DummyObserver {
+   rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr
+       stateOptimizedPosePublisher_;
+ 
++    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
++      comPolygonPublisher_;
++
    std::unique_ptr<GeometryInterfaceVisualization> geometryVisualization_;
 +
 +  bool enableDualEeTarget_ = false;
++
++    bool comPolygonActive_ = false;
++    std::vector<Eigen::Vector2d> comPolygonVertices_;
++    rclcpp::Time lastComPolygonPublishTime_{0, 0, RCL_ROS_TIME};
  };
  
  }  // namespace mobile_manipulator
@@ -4585,6 +4518,23 @@ index 9f02a6f7295aff9b852783c2fee22eb578f64cdd..eb8e3d4e5535e6b5b314c0d2a2becb15
 -            output="screen" launch-prefix="" />
 +            output="log" launch-prefix="" />
  </launch>
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/include/mobile_manipulator.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/include/mobile_manipulator.launch.py
+index 69c49d079bd2b9e2ae4fa77585fab02d16270e4b..f85ecaf45447de51808c1ca7a1b534fcfb39dcc0 100644
+--- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/include/mobile_manipulator.launch.py
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/include/mobile_manipulator.launch.py
+@@ -112,7 +112,11 @@ def generate_launch_description():
+             name='mobile_manipulator_target',
+             prefix=LaunchConfiguration('terminal_prefix'),
+             output='screen',
+-            parameters=[]
++            parameters=[
++                {
++                    'taskFile': launch.substitutions.LaunchConfiguration('taskFile')
++                }
++            ]
+         )
+     ])
+     return ld
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile.launch
 index 21041af8529e7e5f4019604e81a9dd35755d8b67..40c8a87f9755127a70dcf0373c7c24e3e7e8d8b1 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile.launch
@@ -4671,6 +4621,62 @@ index 0000000000000000000000000000000000000000..af71b4f06291972bd12b261b2decfe46
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8239efeb6052389e1608f71d32efa6cdc08ea4ab
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh00003_sldasm') + '/urdf/wh00003_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/WH00003/task.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/WH00003'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_no_wheel.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_no_wheel.launch
 new file mode 100644
 index 0000000000000000000000000000000000000000..649c69e3551edb31675074512ee0f7084b4b2bf6
@@ -4705,6 +4711,62 @@ index 0000000000000000000000000000000000000000..649c69e3551edb31675074512ee0f708
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_no_wheel.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_no_wheel.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e9c69de68926a161e27986def6e3ef3cf9645be
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_no_wheel.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh00003_sldasm') + '/urdf/wh00003_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/WH00003/task_no_wheel.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/WH00003'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_only_shuangbi.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_only_shuangbi.launch
 new file mode 100644
 index 0000000000000000000000000000000000000000..05701a2d35a4afa1d90e726a43788cc0e4c307b3
@@ -4739,6 +4801,62 @@ index 0000000000000000000000000000000000000000..05701a2d35a4afa1d90e726a43788cc0
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_only_shuangbi.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_only_shuangbi.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..52289ca44d5f59f48ea579eb76292e07d472e43c
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_WH00003_only_shuangbi.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh00003_sldasm') + '/urdf/wh00003_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/WH00003/task_only_shuangbi.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/WH00003'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm.launch
 new file mode 100644
 index 0000000000000000000000000000000000000000..2cd6566d7013ff7be2d8e113c3732cab56541dad
@@ -4773,6 +4891,62 @@ index 0000000000000000000000000000000000000000..2cd6566d7013ff7be2d8e113c3732cab
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..da60c0d02bb44339eee4b98dededf814963bc0ad
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh04aa_sldasm') + '/urdf/wh04aa_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/wh04aa_sldasm/task.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/wh04aa_sldasm'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_no_wheel.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_no_wheel.launch
 new file mode 100644
 index 0000000000000000000000000000000000000000..89bc5999712f19af6c41efc018eea3cf5a3bf103
@@ -4807,6 +4981,62 @@ index 0000000000000000000000000000000000000000..89bc5999712f19af6c41efc018eea3cf
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_no_wheel.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_no_wheel.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..156b11b67537a251ad4e0081bb4334f441176a7e
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_no_wheel.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh04aa_sldasm') + '/urdf/wh04aa_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/wh04aa_sldasm/task_no_wheel.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/wh04aa_sldasm'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_only_shuangbi.launch b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_only_shuangbi.launch
 new file mode 100644
 index 0000000000000000000000000000000000000000..9097da69213f6368f8f1043bb6df059f6082a52a
@@ -4841,25 +5071,96 @@ index 0000000000000000000000000000000000000000..9097da69213f6368f8f1043bb6df059f
 +    </include>
 +</launch>
 \ No newline at end of file
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_only_shuangbi.launch.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_only_shuangbi.launch.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..24e1de603f32af0532d643be30a53e3b3b0e415a
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/launch/manipulator_mabi_mobile_wh04aa_sldasm_only_shuangbi.launch.py
+@@ -0,0 +1,50 @@
++import os
++
++import launch
++import launch_ros.actions
++from ament_index_python.packages import get_package_share_directory
++
++
++def generate_launch_description():
++    ld = launch.LaunchDescription([
++        launch.actions.DeclareLaunchArgument(
++            name='rviz',
++            default_value='true'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='debug',
++            default_value='false'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='urdfFile',
++            default_value=get_package_share_directory(
++                'wh04aa_sldasm') + '/urdf/wh04aa_sldasm.urdf'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='taskFile',
++            default_value=get_package_share_directory(
++                'ocs2_mobile_manipulator') + '/config/wh04aa_sldasm/task_only_shuangbi.info'
++        ),
++        launch.actions.DeclareLaunchArgument(
++            name='libFolder',
++            default_value='/tmp/ocs2_mobile_manipulator_auto_generated/wh04aa_sldasm'
++        ),
++        launch.actions.IncludeLaunchDescription(
++            launch.launch_description_sources.PythonLaunchDescriptionSource(
++                os.path.join(get_package_share_directory(
++                    'ocs2_mobile_manipulator_ros'), 'launch/include/mobile_manipulator.launch.py')
++            ),
++            launch_arguments={
++                'rviz': launch.substitutions.LaunchConfiguration('rviz'),
++                'debug': launch.substitutions.LaunchConfiguration('debug'),
++                'urdfFile': launch.substitutions.LaunchConfiguration('urdfFile'),
++                'taskFile': launch.substitutions.LaunchConfiguration('taskFile'),
++                'libFolder': launch.substitutions.LaunchConfiguration('libFolder')
++            }.items()
++        )
++    ])
++    return ld
++
++
++if __name__ == '__main__':
++    generate_launch_description()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml
-index 3a68339d1241434945cfccdab70773769feb2214..0322ad28533db34df7aec5cc8f8501894d823eff 100644
+index 2910227af754ca09c2b0c36365470f7c827b10eb..2b1488770285f4ef9ec8333cab80ae5e332489a0 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml
-@@ -15,12 +15,14 @@
-   <build_depend>cmake_clang_tools</build_depend>
- 
-   <depend>roslib</depend>
-+  <depend>rospy</depend>
-   <depend>tf</depend>
+@@ -17,6 +17,7 @@
+   <depend>tf2_ros</depend>
+   <depend>sensor_msgs</depend>
+   <depend>geometry_msgs</depend>
++  <depend>interactive_markers</depend>
+   <depend>visualization_msgs</depend>
    <depend>urdf</depend>
    <depend>kdl_parser</depend>
-   <depend>robot_state_publisher</depend>
-   <depend>visualization_msgs</depend>
-   <depend>geometry_msgs</depend>
-+  <depend>ocs2_msgs</depend>
-   <depend>ocs2_core</depend>
-   <depend>ocs2_ddp</depend>
-   <depend>ocs2_mpc</depend>
+diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml.rej b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml.rej
+new file mode 100644
+index 0000000000000000000000000000000000000000..5aefd961d019b8bf560889e5ef46a59dbe6c9229
+--- /dev/null
++++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml.rej
+@@ -0,0 +1,16 @@
++diff a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/package.xml	(rejected hunks)
++@@ -15,12 +15,14 @@
++   <build_depend>cmake_clang_tools</build_depend>
++ 
++   <depend>roslib</depend>
+++  <depend>rospy</depend>
++   <depend>tf</depend>
++   <depend>urdf</depend>
++   <depend>kdl_parser</depend>
++   <depend>robot_state_publisher</depend>
++   <depend>visualization_msgs</depend>
++   <depend>geometry_msgs</depend>
+++  <depend>ocs2_msgs</depend>
++   <depend>ocs2_core</depend>
++   <depend>ocs2_ddp</depend>
++   <depend>ocs2_mpc</depend>
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/scripts/vr_ar_target_to_mpc_target.py b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/scripts/vr_ar_target_to_mpc_target.py
 new file mode 100644
 index 0000000000000000000000000000000000000000..3c9c4449550735a85c5021f8d41a619d6f83111c
@@ -5014,13 +5315,16 @@ index 0000000000000000000000000000000000000000..3c9c4449550735a85c5021f8d41a619d
 +if __name__ == "__main__":
 +    main()
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyMRT.cpp b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyMRT.cpp
-index b472ae59beafcc8adc6fa6deaf542a000ef1d5f1..ca38a0c4225ba93a5abb1cb2d358214d733e68e1 100644
+index e951057cd4d861eecfdecc7f064989148681765f..5776453c28471d14d28156f93dbeef65e629109f 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyMRT.cpp
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyMRT.cpp
-@@ -31,13 +31,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@@ -28,7 +28,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  ******************************************************************************/
  
+ #include <ocs2_mobile_manipulator/MobileManipulatorInterface.h>
++
  #include <ocs2_mobile_manipulator_ros/MobileManipulatorDummyVisualization.h>
- 
++
 +#include <boost/property_tree/info_parser.hpp>
 +#include <boost/property_tree/ptree.hpp>
 +
@@ -5029,73 +5333,25 @@ index b472ae59beafcc8adc6fa6deaf542a000ef1d5f1..ca38a0c4225ba93a5abb1cb2d358214d
  #include <ocs2_mpc/SystemObservation.h>
  #include <ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h>
  #include <ocs2_ros_interfaces/mrt/MRT_ROS_Interface.h>
-+#include <ocs2_ros_interfaces/common/RosMsgConversions.h>
+@@ -36,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ #include <stdexcept>
  
- #include <ros/init.h>
- #include <ros/package.h>
- 
+ #include "rclcpp/rclcpp.hpp"
 +#include <mutex>
-+
+ 
  using namespace ocs2;
  using namespace mobile_manipulator;
- 
-@@ -47,6 +55,7 @@ int main(int argc, char** argv) {
-   // Initialize ros node
-   ros::init(argc, argv, robotName + "_mrt");
-   ros::NodeHandle nodeHandle;
-+  ros::NodeHandle privateNodeHandle("~");
-   // Get node parameters
-   std::string taskFile, libFolder, urdfFile;
-   nodeHandle.getParam("/taskFile", taskFile);
-@@ -70,6 +79,41 @@ int main(int argc, char** argv) {
-   MRT_ROS_Dummy_Loop dummy(mrt, interface.mpcSettings().mrtDesiredFrequency_, interface.mpcSettings().mpcDesiredFrequency_);
-   dummy.subscribeObservers({dummyVisualization});
- 
-+  // Optional: use an external observation stream instead of dummy forwardSimulation().
-+  bool useExternalObservation = false;
-+  std::string externalObservationTopic = robotName + std::string("_external_observation");
-+  // Prefer private params (~useExternalObservation, ~externalObservationTopic). Fallback to legacy global params.
-+  if (!privateNodeHandle.getParam("useExternalObservation", useExternalObservation)) {
-+    nodeHandle.param("useExternalObservation", useExternalObservation, false);
-+  }
-+  if (!privateNodeHandle.getParam("externalObservationTopic", externalObservationTopic)) {
-+    nodeHandle.param<std::string>("externalObservationTopic", externalObservationTopic, externalObservationTopic);
-+  }
-+
-+  std::mutex externalObsMutex;
-+  SystemObservation externalObservation;
-+  bool externalObservationReceived = false;
-+  ros::Subscriber externalObservationSub;
-+  if (useExternalObservation) {
-+    ROS_WARN_STREAM("[" << robotName << "] Using external observation topic: " << externalObservationTopic);
-+    externalObservationSub = nodeHandle.subscribe<ocs2_msgs::mpc_observation>(
-+        externalObservationTopic, 1, [&](const ocs2_msgs::mpc_observation::ConstPtr& msg) {
-+          auto obs = ros_msg_conversions::readObservationMsg(*msg);
-+          std::lock_guard<std::mutex> lock(externalObsMutex);
-+          externalObservation = std::move(obs);
-+          externalObservationReceived = true;
-+        });
-+
-+    dummy.setObservationProvider([&](SystemObservation& observation) {
-+      std::lock_guard<std::mutex> lock(externalObsMutex);
-+      if (!externalObservationReceived) {
-+        return false;
-+      }
-+      observation = externalObservation;
-+      return true;
-+    });
-+  }
-+
-   // initial state
-   SystemObservation initObservation;
-   initObservation.state = interface.getInitialState();
-@@ -77,9 +121,25 @@ int main(int argc, char** argv) {
+@@ -88,13 +96,26 @@ int main(int argc, char** argv) {
    initObservation.time = 0.0;
  
    // initial command
 -  vector_t initTarget(7);
 -  initTarget.head(3) << 1, 0, 1;
 -  initTarget.tail(4) << Eigen::Quaternion<scalar_t>(1, 0, 0, 0).coeffs();
+-  const vector_t zeroInput =
+-      vector_t::Zero(interface.getManipulatorModelInfo().inputDim);
+-  const TargetTrajectories initTargetTrajectories({initObservation.time},
+-                                                  {initTarget}, {zeroInput});
 +  boost::property_tree::ptree pt;
 +  boost::property_tree::read_info(taskFile, pt);
 +  bool enableDualEeTarget = false;
@@ -5112,50 +5368,235 @@ index b472ae59beafcc8adc6fa6deaf542a000ef1d5f1..ca38a0c4225ba93a5abb1cb2d358214d
 +    initTarget.resize(7);
 +    initTarget.head(3) << 1.0, 0.0, 1.0;
 +    initTarget.tail(4) << Eigen::Quaternion<scalar_t>(1, 0, 0, 0).coeffs();
-+  }
++}
 +
-+
-   const vector_t zeroInput = vector_t::Zero(interface.getManipulatorModelInfo().inputDim);
-   const TargetTrajectories initTargetTrajectories({initObservation.time}, {initTarget}, {zeroInput});
++  const vector_t zeroInput = vector_t::Zero(interface.getManipulatorModelInfo().inputDim);
++  const TargetTrajectories initTargetTrajectories({initObservation.time}, {initTarget}, {zeroInput});
  
+   // Run dummy (loops while ros is ok)
+   dummy.run(initObservation, initTargetTrajectories);
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyVisualization.cpp b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyVisualization.cpp
-index 9a1d6dcee07da61b386c2171149660e6d30bd4fd..bff32bf334afa4641d267d00c723dc0eb7d8c91c 100644
+index 90b688cf6b2a4879a3fbed03312b867bf1702510..6dab4fde3347517d6fd51ee4b06fcfcc019c5b23 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyVisualization.cpp
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorDummyVisualization.cpp
-@@ -104,6 +104,7 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode(ros::NodeHandle&
-   // read if self-collision checking active
-   boost::property_tree::ptree pt;
-   boost::property_tree::read_info(taskFile, pt);
-+  loadData::loadPtreeValue(pt, enableDualEeTarget_, "model_information.enableDualEeTarget", true);
+@@ -27,8 +27,19 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  ******************************************************************************/
+ 
++#include <pinocchio/fwd.hpp>
++
++#include <pinocchio/algorithm/center-of-mass.hpp>
++#include <pinocchio/algorithm/frames.hpp>
++#include <pinocchio/algorithm/kinematics.hpp>
++
++#include <urdf/model.h>
++#include <kdl_parser/kdl_parser.hpp>
++
+ #include <ocs2_core/misc/LoadData.h>
+ #include <ocs2_core/misc/LoadStdVectorOfPair.h>
++#include <ocs2_ros_interfaces/common/RosMsgHelpers.h>
++
+ #include <ocs2_mobile_manipulator/AccessHelperFunctions.h>
+ #include <ocs2_mobile_manipulator/FactoryFunctions.h>
+ #include <ocs2_mobile_manipulator/ManipulatorModelInfo.h>
+@@ -83,6 +94,9 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
+   stateOptimizedPosePublisher_ =
+       node_->create_publisher<geometry_msgs::msg::PoseArray>(
+           "/mobile_manipulator/optimizedPoseTrajectory", 1);
++  comPolygonPublisher_ =
++    node_->create_publisher<visualization_msgs::msg::MarkerArray>(
++      "/mobile_manipulator/com_support_polygon", 1);
+   // Get ROS parameter
+   std::string taskFile = node_->get_parameter("taskFile").as_string();
+   std::string urdfFile = node_->get_parameter("urdfFile").as_string();
+@@ -98,6 +112,30 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
    bool activateSelfCollision = true;
-   loadData::loadPtreeValue(pt, activateSelfCollision, "selfCollision.activate", true);
+   loadData::loadPtreeValue(pt, activateSelfCollision, "selfCollision.activate",
+                            true);
++
++  loadData::loadPtreeValue(pt, comPolygonActive_, "comPolygon.activate", true);
++  if (comPolygonActive_) {
++    int numVertices = 0;
++    loadData::loadPtreeValue(pt, numVertices, "comPolygon.numVertices", false);
++    if (numVertices <= 0) {
++      RCLCPP_WARN_STREAM(node_->get_logger(),
++                         "[MobileManipulatorDummyVisualization] comPolygon.activate=true but comPolygon.numVertices<=0. Disabling polygon visualization.");
++      comPolygonActive_ = false;
++    } else {
++      matrix_t vertexOffsets = matrix_t::Zero(numVertices, 2);
++      loadData::loadEigenMatrix(taskFile, "comPolygon.vertices", vertexOffsets);
++      if (vertexOffsets.rows() != numVertices || vertexOffsets.cols() != 2) {
++        RCLCPP_WARN_STREAM(node_->get_logger(),
++                           "[MobileManipulatorDummyVisualization] comPolygon.vertices must be numVertices x 2. Disabling polygon visualization.");
++        comPolygonActive_ = false;
++      } else {
++        comPolygonVertices_.resize(numVertices);
++        for (int i = 0; i < numVertices; ++i) {
++          comPolygonVertices_[i] = vertexOffsets.row(i).transpose();
++        }
++      }
++    }
++  }
    // create pinocchio interface
-@@ -164,19 +165,35 @@ void MobileManipulatorDummyVisualization::publishObservation(const ros::Time& ti
+   PinocchioInterface pinocchioInterface(
+       mobile_manipulator::createPinocchioInterface(urdfFile, modelType,
+@@ -121,10 +159,11 @@ void MobileManipulatorDummyVisualization::launchVisualizerNode() {
+ /******************************************************************************************************/
+ void MobileManipulatorDummyVisualization::update(
+     const SystemObservation& observation, const PrimalSolution& policy,
+-    const CommandData& command) {
++                                                 const CommandData& command) {
+   const rclcpp::Time timeStamp = node_->get_clock()->now();
+ 
+   publishObservation(timeStamp, observation);
++  publishComAndSupportPolygon(timeStamp, observation);
+   publishTargetTrajectories(timeStamp, command.mpcTargetTrajectories_);
+   publishOptimizedTrajectory(timeStamp, policy);
+   if (geometryVisualization_ != nullptr) {
+@@ -132,6 +171,114 @@ void MobileManipulatorDummyVisualization::update(
+   }
+ }
+ 
++/******************************************************************************************************/
++/******************************************************************************************************/
++/******************************************************************************************************/
++void MobileManipulatorDummyVisualization::publishComAndSupportPolygon(
++    const rclcpp::Time& timeStamp, const SystemObservation& observation) {
++  if (!comPolygonPublisher_) {
++    return;
++  }
++
++  // Throttle to ~30 Hz to avoid spamming RViz at MRT frequency
++  if (lastComPolygonPublishTime_.nanoseconds() != 0) {
++    const auto dt = timeStamp - lastComPolygonPublishTime_;
++    if (dt.seconds() < (1.0 / 30.0)) {
++      return;
++    }
++  }
++  lastComPolygonPublishTime_ = timeStamp;
++
++  const auto r_world_base = getBasePosition(observation.state, modelInfo_);
++  const Eigen::Quaternion<scalar_t> q_world_base =
++      getBaseOrientation(observation.state, modelInfo_);
++  const Eigen::Matrix3d R_world_base = q_world_base.toRotationMatrix();
++
++  visualization_msgs::msg::MarkerArray markerArray;
++  markerArray.markers.resize(2);
++
++  // --- CoM marker ---
++  auto& comMarker = markerArray.markers[0];
++  comMarker.header.stamp = timeStamp;
++  comMarker.header.frame_id = "world";
++  comMarker.ns = "com_support";
++  comMarker.id = 0;
++  comMarker.type = visualization_msgs::msg::Marker::SPHERE;
++  comMarker.action = visualization_msgs::msg::Marker::ADD;
++  comMarker.pose.orientation.w = 1.0;
++  comMarker.scale.x = 0.06;
++  comMarker.scale.y = 0.06;
++  comMarker.scale.z = 0.06;
++  comMarker.color.r = 0.9f;
++  comMarker.color.g = 0.1f;
++  comMarker.color.b = 0.1f;
++  comMarker.color.a = 0.9f;
++
++  // --- Support polygon marker ---
++  auto& polyMarker = markerArray.markers[1];
++  polyMarker.header.stamp = timeStamp;
++  polyMarker.header.frame_id = "world";
++  polyMarker.ns = "com_support";
++  polyMarker.id = 1;
++  polyMarker.type = visualization_msgs::msg::Marker::LINE_STRIP;
++  polyMarker.action = visualization_msgs::msg::Marker::ADD;
++  polyMarker.pose.orientation.w = 1.0;
++  polyMarker.scale.x = 0.01;  // line width
++  polyMarker.color.r = 0.1f;
++  polyMarker.color.g = 0.9f;
++  polyMarker.color.b = 0.1f;
++  polyMarker.color.a = 0.9f;
++
++  // Compute CoM using Pinocchio when possible.
++  try {
++    const auto& model = pinocchioInterface_.getModel();
++    if (static_cast<size_t>(observation.state.size()) == model.nq) {
++      const vector_t q = observation.state;
++      auto& data = pinocchioInterface_.getData();
++      pinocchio::forwardKinematics(model, data, q);
++      pinocchio::updateFramePlacements(model, data);
++      pinocchio::centerOfMass(model, data, q);
++      const Eigen::Vector3d pComW = data.com[0];
++      comMarker.pose.position.x = pComW.x();
++      comMarker.pose.position.y = pComW.y();
++      comMarker.pose.position.z = pComW.z();
++    } else {
++      // Fallback: place marker at base position (still gives user a visual reference)
++      comMarker.pose.position.x = r_world_base.x();
++      comMarker.pose.position.y = r_world_base.y();
++      comMarker.pose.position.z = r_world_base.z();
++    }
++  } catch (const std::exception& e) {
++    comMarker.pose.position.x = r_world_base.x();
++    comMarker.pose.position.y = r_world_base.y();
++    comMarker.pose.position.z = r_world_base.z();
++    RCLCPP_WARN_STREAM_THROTTLE(node_->get_logger(), *node_->get_clock(), 2000,
++                                "[MobileManipulatorDummyVisualization] CoM computation failed: "
++                                    << e.what());
++  }
++
++  if (comPolygonActive_ && comPolygonVertices_.size() >= 3) {
++    polyMarker.points.reserve(comPolygonVertices_.size() + 1);
++    for (const auto& v : comPolygonVertices_) {
++      const Eigen::Vector3d p_base(v.x(), v.y(), 0.0);
++      const Eigen::Vector3d p_world = r_world_base + R_world_base * p_base;
++      geometry_msgs::msg::Point p;
++      p.x = p_world.x();
++      p.y = p_world.y();
++      p.z = p_world.z();
++      polyMarker.points.push_back(p);
++    }
++    // close polygon
++    geometry_msgs::msg::Point p0 = polyMarker.points.front();
++    polyMarker.points.push_back(p0);
++  } else {
++    // If polygon disabled/missing, hide the marker
++    polyMarker.action = visualization_msgs::msg::Marker::DELETE;
++  }
++
++  comPolygonPublisher_->publish(markerArray);
++}
++
  /******************************************************************************************************/
  /******************************************************************************************************/
  /******************************************************************************************************/
--void MobileManipulatorDummyVisualization::publishTargetTrajectories(const ros::Time& timeStamp,
--                                                                    const TargetTrajectories& targetTrajectories) {
+@@ -176,23 +323,34 @@ void MobileManipulatorDummyVisualization::publishObservation(
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ void MobileManipulatorDummyVisualization::publishTargetTrajectories(
+-    const rclcpp::Time& timeStamp,
+-    const TargetTrajectories& targetTrajectories) {
 -  // publish command transform
--  const Eigen::Vector3d eeDesiredPosition = targetTrajectories.stateTrajectory.back().head(3);
+-  const Eigen::Vector3d eeDesiredPosition =
+-      targetTrajectories.stateTrajectory.back().head(3);
 -  Eigen::Quaterniond eeDesiredOrientation;
--  eeDesiredOrientation.coeffs() = targetTrajectories.stateTrajectory.back().tail(4);
--  geometry_msgs::TransformStamped command_tf;
+-  eeDesiredOrientation.coeffs() =
+-      targetTrajectories.stateTrajectory.back().tail(4);
+-  geometry_msgs::msg::TransformStamped command_tf;
 -  command_tf.header.stamp = timeStamp;
 -  command_tf.header.frame_id = "world";
 -  command_tf.child_frame_id = "command";
--  command_tf.transform.translation = ros_msg_helpers::getVectorMsg(eeDesiredPosition);
--  command_tf.transform.rotation = ros_msg_helpers::getOrientationMsg(eeDesiredOrientation);
+-  command_tf.transform.translation =
+-      ros_msg_helpers::getVectorMsg(eeDesiredPosition);
+-  command_tf.transform.rotation =
+-      ros_msg_helpers::getOrientationMsg(eeDesiredOrientation);
 -  tfBroadcaster_.sendTransform(command_tf);
-+void MobileManipulatorDummyVisualization::publishTargetTrajectories(
-+    const ros::Time& timeStamp, const TargetTrajectories& targetTrajectories) {
++    const rclcpp::Time& timeStamp, const TargetTrajectories& targetTrajectories) {
 +  const auto& target = targetTrajectories.stateTrajectory.back();
 +
 +  Eigen::Vector3d rightPos = target.segment<3>(0);
 +  Eigen::Quaterniond rightQuat;
 +  rightQuat.coeffs() = target.segment<4>(3);
 +
-+  geometry_msgs::TransformStamped right_tf;
++  geometry_msgs::msg::TransformStamped right_tf;
 +  right_tf.header.stamp = timeStamp;
 +  right_tf.header.frame_id = "world";
 +  right_tf.child_frame_id = "command_right";
@@ -5168,7 +5609,7 @@ index 9a1d6dcee07da61b386c2171149660e6d30bd4fd..bff32bf334afa4641d267d00c723dc0e
 +    Eigen::Quaterniond leftQuat;
 +    leftQuat.coeffs() = target.segment<4>(10);
 +
-+    geometry_msgs::TransformStamped left_tf;
++    geometry_msgs::msg::TransformStamped left_tf;
 +    left_tf.header.stamp = timeStamp;
 +    left_tf.header.frame_id = "world";
 +    left_tf.child_frame_id = "command_left";
@@ -5179,11 +5620,63 @@ index 9a1d6dcee07da61b386c2171149660e6d30bd4fd..bff32bf334afa4641d267d00c723dc0e
  }
  
  /******************************************************************************************************/
+@@ -221,13 +379,13 @@ void MobileManipulatorDummyVisualization::publishOptimizedTrajectory(
+   endEffectorTrajectory.reserve(mpcStateTrajectory.size());
+   std::for_each(mpcStateTrajectory.begin(), mpcStateTrajectory.end(),
+                 [&](const Eigen::VectorXd& state) {
+-                  pinocchio::forwardKinematics(model, data, state);
+-                  pinocchio::updateFramePlacements(model, data);
+-                  const auto eeIndex = model.getBodyId(modelInfo_.eeFrame);
+-                  const vector_t eePosition = data.oMf[eeIndex].translation();
++    pinocchio::forwardKinematics(model, data, state);
++    pinocchio::updateFramePlacements(model, data);
++    const auto eeIndex = model.getBodyId(modelInfo_.eeFrame);
++    const vector_t eePosition = data.oMf[eeIndex].translation();
+                   endEffectorTrajectory.push_back(
+                       ros_msg_helpers::getPointMsg(eePosition));
+-                });
++  });
+ 
+   markerArray.markers.emplace_back(ros_msg_helpers::getLineMsg(
+       std::move(endEffectorTrajectory), blue, TRAJECTORYLINEWIDTH));
+@@ -236,19 +394,19 @@ void MobileManipulatorDummyVisualization::publishOptimizedTrajectory(
+   // Extract base pose from state
+   std::for_each(mpcStateTrajectory.begin(), mpcStateTrajectory.end(),
+                 [&](const vector_t& state) {
+-                  // extract from observation
+-                  const auto r_world_base = getBasePosition(state, modelInfo_);
+-                  const Eigen::Quaternion<scalar_t> q_world_base =
+-                      getBaseOrientation(state, modelInfo_);
+-
+-                  // convert to ros message
+-                  geometry_msgs::msg::Pose pose;
+-                  pose.position = ros_msg_helpers::getPointMsg(r_world_base);
+-                  pose.orientation =
+-                      ros_msg_helpers::getOrientationMsg(q_world_base);
+-                  baseTrajectory.push_back(pose.position);
+-                  poseArray.poses.push_back(std::move(pose));
+-                });
++    // extract from observation
++                const auto r_world_base = getBasePosition(state, modelInfo_);
++                const Eigen::Quaternion<scalar_t> q_world_base =
++                    getBaseOrientation(state, modelInfo_);
++
++    // convert to ros message
++                geometry_msgs::msg::Pose pose;
++                pose.position = ros_msg_helpers::getPointMsg(r_world_base);
++                pose.orientation =
++                    ros_msg_helpers::getOrientationMsg(q_world_base);
++                baseTrajectory.push_back(pose.position);
++                poseArray.poses.push_back(std::move(pose));
++  });
+ 
+   markerArray.markers.emplace_back(ros_msg_helpers::getLineMsg(
+       std::move(baseTrajectory), red, TRAJECTORYLINEWIDTH));
 diff --git a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorTarget.cpp b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorTarget.cpp
-index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407a2de45b0 100644
+index 6d622d5fa2acca6d463fa4811120e20f55be06e0..bbdb31ae9d1aab960d7c88321bb1dcf3e00d037e 100644
 --- a/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorTarget.cpp
 +++ b/ocs2_robotic_examples/ocs2_mobile_manipulator_ros/src/MobileManipulatorTarget.cpp
-@@ -1,60 +1,251 @@
+@@ -1,66 +1,311 @@
  /******************************************************************************
  Copyright (c) 2017, Farbod Farshidian. All rights reserved.
 +******************************************************************************/
@@ -5191,17 +5684,19 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 -Redistribution and use in source and binary forms, with or without
 -modification, are permitted provided that the following conditions are met:
 +#include <memory>
++#include <mutex>
 +#include <string>
 +#include <vector>
  
 - * Redistributions of source code must retain the above copyright notice, this
 -  list of conditions and the following disclaimer.
-+#include <ros/ros.h>
-+#include <geometry_msgs/Pose.h>
-+#include <interactive_markers/interactive_marker_server.h>
-+#include <visualization_msgs/InteractiveMarker.h>
-+#include <visualization_msgs/InteractiveMarkerControl.h>
-+#include <visualization_msgs/Marker.h>
++#include <geometry_msgs/msg/pose.hpp>
++#include <geometry_msgs/msg/quaternion.hpp>
++#include <interactive_markers/interactive_marker_server.hpp>
++#include <visualization_msgs/msg/interactive_marker.hpp>
++#include <visualization_msgs/msg/interactive_marker_control.hpp>
++#include <visualization_msgs/msg/interactive_marker_feedback.hpp>
++#include <visualization_msgs/msg/marker.hpp>
  
 - * Redistributions in binary form must reproduce the above copyright notice,
 -  this list of conditions and the following disclaimer in the documentation
@@ -5216,6 +5711,7 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +#include <ocs2_core/misc/LoadData.h>
 +#include <ocs2_core/reference/TargetTrajectories.h>
 +#include <ocs2_mpc/SystemObservation.h>
++#include <ocs2_ros_interfaces/common/RosMsgConversions.h>
 +#include <ocs2_ros_interfaces/command/TargetTrajectoriesRosPublisher.h>
  
 -THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -5229,14 +5725,34 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 -OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 -OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 - ******************************************************************************/
-+using namespace ocs2;
- 
+-
 -#include <ocs2_ros_interfaces/command/TargetTrajectoriesInteractiveMarker.h>
-+namespace {
++#include "rclcpp/rclcpp.hpp"
  
--using namespace ocs2;
-+geometry_msgs::Pose makeDefaultPose(double x, double y, double z) {
-+  geometry_msgs::Pose pose;
+ using namespace ocs2;
+ 
+-/**
+- * Converts the pose of the interactive marker to TargetTrajectories.
+- */
+-TargetTrajectories goalPoseToTargetTrajectories(
+-    const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation,
+-    const SystemObservation& observation) {
+-  // time trajectory
+-  const scalar_array_t timeTrajectory{observation.time};
+-  // state trajectory: 3 + 4 for desired position vector and orientation
+-  // quaternion
+-  const vector_t target =
+-      (vector_t(7) << position, orientation.coeffs()).finished();
+-  const vector_array_t stateTrajectory{target};
+-  // input trajectory
+-  const vector_array_t inputTrajectory{
+-      vector_t::Zero(observation.input.size())};
+-
+-  return {timeTrajectory, stateTrajectory, inputTrajectory};
++namespace {
++
++geometry_msgs::msg::Pose makeDefaultPose(double x, double y, double z) {
++  geometry_msgs::msg::Pose pose;
 +  pose.position.x = x;
 +  pose.position.y = y;
 +  pose.position.z = z;
@@ -5246,24 +5762,10 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +  pose.orientation.z = 0.0;
 +  return pose;
 +}
- 
--/**
-- * Converts the pose of the interactive marker to TargetTrajectories.
-- */
--TargetTrajectories goalPoseToTargetTrajectories(const Eigen::Vector3d& position, const Eigen::Quaterniond& orientation,
--                                                const SystemObservation& observation) {
--  // time trajectory
--  const scalar_array_t timeTrajectory{observation.time};
--  // state trajectory: 3 + 4 for desired position vector and orientation quaternion
--  const vector_t target = (vector_t(7) << position, orientation.coeffs()).finished();
--  const vector_array_t stateTrajectory{target};
--  // input trajectory
--  const vector_array_t inputTrajectory{vector_t::Zero(observation.input.size())};
--
--  return {timeTrajectory, stateTrajectory, inputTrajectory};
-+visualization_msgs::Marker makeSphereMarker() {
-+  visualization_msgs::Marker marker;
-+  marker.type = visualization_msgs::Marker::SPHERE;
++
++visualization_msgs::msg::Marker makeSphereMarker() {
++  visualization_msgs::msg::Marker marker;
++  marker.type = visualization_msgs::msg::Marker::SPHERE;
 +  marker.scale.x = 0.08;
 +  marker.scale.y = 0.08;
 +  marker.scale.z = 0.08;
@@ -5272,20 +5774,22 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +  marker.color.b = 0.2;
 +  marker.color.a = 0.9;
 +  return marker;
- }
- 
-+visualization_msgs::InteractiveMarkerControl makeMoveRotateControl(const geometry_msgs::Quaternion& orientation,
-+                                                                   const std::string& name, int interactionMode) {
-+  visualization_msgs::InteractiveMarkerControl control;
++}
++
++visualization_msgs::msg::InteractiveMarkerControl makeMoveRotateControl(
++    const geometry_msgs::msg::Quaternion& orientation, const std::string& name,
++    int interactionMode) {
++  visualization_msgs::msg::InteractiveMarkerControl control;
 +  control.orientation = orientation;
 +  control.name = name;
 +  control.interaction_mode = interactionMode;
 +  return control;
-+}
-+
-+visualization_msgs::InteractiveMarker make6DofMarker(const std::string& frameId, const std::string& markerName,
-+                                                     const geometry_msgs::Pose& pose) {
-+  visualization_msgs::InteractiveMarker intMarker;
+ }
+ 
++visualization_msgs::msg::InteractiveMarker make6DofMarker(
++    const std::string& frameId, const std::string& markerName,
++    const geometry_msgs::msg::Pose& pose) {
++  visualization_msgs::msg::InteractiveMarker intMarker;
 +  intMarker.header.frame_id = frameId;
 +  intMarker.name = markerName;
 +  intMarker.description = markerName;
@@ -5293,142 +5797,183 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +  intMarker.pose = pose;
 +
 +  // Visual marker
-+  visualization_msgs::InteractiveMarkerControl visualControl;
++  visualization_msgs::msg::InteractiveMarkerControl visualControl;
 +  visualControl.always_visible = true;
 +  visualControl.markers.push_back(makeSphereMarker());
 +  intMarker.controls.push_back(visualControl);
 +
-+  geometry_msgs::Quaternion qx;
++  geometry_msgs::msg::Quaternion qx;
 +  qx.w = 1.0;
 +  qx.x = 1.0;
 +  qx.y = 0.0;
 +  qx.z = 0.0;
 +
-+  geometry_msgs::Quaternion qy;
++  geometry_msgs::msg::Quaternion qy;
 +  qy.w = 1.0;
 +  qy.x = 0.0;
 +  qy.y = 1.0;
 +  qy.z = 0.0;
 +
-+  geometry_msgs::Quaternion qz;
++  geometry_msgs::msg::Quaternion qz;
 +  qz.w = 1.0;
 +  qz.x = 0.0;
 +  qz.y = 0.0;
 +  qz.z = 1.0;
 +
-+  intMarker.controls.push_back(makeMoveRotateControl(qx, "rotate_x", visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS));
-+  intMarker.controls.push_back(makeMoveRotateControl(qx, "move_x", visualization_msgs::InteractiveMarkerControl::MOVE_AXIS));
-+  intMarker.controls.push_back(makeMoveRotateControl(qy, "rotate_y", visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS));
-+  intMarker.controls.push_back(makeMoveRotateControl(qy, "move_y", visualization_msgs::InteractiveMarkerControl::MOVE_AXIS));
-+  intMarker.controls.push_back(makeMoveRotateControl(qz, "rotate_z", visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS));
-+  intMarker.controls.push_back(makeMoveRotateControl(qz, "move_z", visualization_msgs::InteractiveMarkerControl::MOVE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qx, "rotate_x",
++      visualization_msgs::msg::InteractiveMarkerControl::ROTATE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qx, "move_x", visualization_msgs::msg::InteractiveMarkerControl::MOVE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qy, "rotate_y",
++      visualization_msgs::msg::InteractiveMarkerControl::ROTATE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qy, "move_y", visualization_msgs::msg::InteractiveMarkerControl::MOVE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qz, "rotate_z",
++      visualization_msgs::msg::InteractiveMarkerControl::ROTATE_AXIS));
++  intMarker.controls.push_back(makeMoveRotateControl(
++      qz, "move_z", visualization_msgs::msg::InteractiveMarkerControl::MOVE_AXIS));
 +
 +  return intMarker;
 +}
 +
 +class DualEeTargetNode {
 + public:
-+  DualEeTargetNode(ros::NodeHandle& nodeHandle, const std::string& robotName)
-+      : nodeHandle_(nodeHandle),
++  DualEeTargetNode(const rclcpp::Node::SharedPtr& node,
++                   const std::string& robotName)
++      : node_(node),
 +        robotName_(robotName),
-+        interactiveMarkerServer_(std::make_unique<interactive_markers::InteractiveMarkerServer>("simple_marker")),
-+        targetTrajectoriesPublisher_(nodeHandle_, robotName_) {
-+    std::string taskFile;
-+    if (!nodeHandle_.getParam("/taskFile", taskFile)) {
-+      throw std::runtime_error("[MobileManipulatorTarget] Could not read /taskFile from parameter server.");
++        interactiveMarkerServer_("simple_marker", node_),
++        targetTrajectoriesPublisher_(node_, robotName_) {
++    const std::string taskFile = node_->declare_parameter<std::string>("taskFile", "");
++    if (taskFile.empty()) {
++      RCLCPP_ERROR(node_->get_logger(),
++                   "[MobileManipulatorTarget] Parameter 'taskFile' is empty. "
++                   "Falling back to enableDualEeTarget=false.");
++      enableDualEeTarget_ = false;
++    } else {
++      boost::property_tree::ptree pt;
++      boost::property_tree::read_info(taskFile, pt);
++      loadData::loadPtreeValue(pt, enableDualEeTarget_,
++                               "model_information.enableDualEeTarget", true);
 +    }
-+
-+    boost::property_tree::ptree pt;
-+    boost::property_tree::read_info(taskFile, pt);
-+
-+    loadData::loadPtreeValue(pt, enableDualEeTarget_, "model_information.enableDualEeTarget", true);
 +
 +    rightPose_ = makeDefaultPose(0.5, -0.2, 0.6);
 +    leftPose_ = makeDefaultPose(0.5, 0.2, 0.6);
 +
 +    createMarkers();
-+    interactiveMarkerServer_->applyChanges();
++    interactiveMarkerServer_.applyChanges();
 +
-+    observationSubscriber_ = nodeHandle_.subscribe("/" + robotName_ + "_mpc_observation", 1,
-+                                                   &DualEeTargetNode::observationCallback, this);
++    observationSubscriber_ =
++        node_->create_subscription<ocs2_msgs::msg::MpcObservation>(
++            robotName_ + "_mpc_observation", 1,
++            std::bind(&DualEeTargetNode::observationCallback, this,
++                      std::placeholders::_1));
 +
-+    ROS_INFO_STREAM("[MobileManipulatorTarget] enableDualEeTarget = " << std::boolalpha << enableDualEeTarget_);
++    RCLCPP_INFO_STREAM(node_->get_logger(),
++                       "[MobileManipulatorTarget] enableDualEeTarget = "
++                           << std::boolalpha << enableDualEeTarget_);
 +  }
 +
 + private:
 +  void createMarkers() {
 +    auto rightMarker = make6DofMarker("world", "right_ee_target", rightPose_);
-+    interactiveMarkerServer_->insert(
-+        rightMarker, boost::bind(&DualEeTargetNode::processRightFeedback, this, _1));
++    interactiveMarkerServer_.insert(
++        rightMarker,
++        std::bind(&DualEeTargetNode::processRightFeedback, this,
++                  std::placeholders::_1));
 +
 +    if (enableDualEeTarget_) {
 +      auto leftMarker = make6DofMarker("world", "left_ee_target", leftPose_);
-+      interactiveMarkerServer_->insert(
-+          leftMarker, boost::bind(&DualEeTargetNode::processLeftFeedback, this, _1));
++      interactiveMarkerServer_.insert(
++          leftMarker,
++          std::bind(&DualEeTargetNode::processLeftFeedback, this,
++                    std::placeholders::_1));
 +    }
 +  }
 +
-+  void processRightFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback) {
-+    if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
++  void processRightFeedback(
++      const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr&
++          feedback) {
++    if (feedback->event_type ==
++        visualization_msgs::msg::InteractiveMarkerFeedback::POSE_UPDATE) {
 +      rightPose_ = feedback->pose;
 +      publishTargetTrajectories();
 +    }
 +  }
 +
-+  void processLeftFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr& feedback) {
-+    if (feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE) {
++  void processLeftFeedback(
++      const visualization_msgs::msg::InteractiveMarkerFeedback::ConstSharedPtr&
++          feedback) {
++    if (feedback->event_type ==
++        visualization_msgs::msg::InteractiveMarkerFeedback::POSE_UPDATE) {
 +      leftPose_ = feedback->pose;
 +      publishTargetTrajectories();
 +    }
 +  }
 +
-+  void observationCallback(const ocs2_msgs::mpc_observation::ConstPtr& msg) {
-+    latestObservation_.time = msg->time;
-+    latestObservation_.state = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 1>>(msg->state.value.data(), msg->state.value.size())
-+                                  .template cast<scalar_t>();
-+    latestObservation_.input = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, 1>>(msg->input.value.data(), msg->input.value.size())
-+                                  .template cast<scalar_t>();
-+
-+    // Publish once when first observation arrives, so OCP has a valid target immediately.
-+    if (!hasObservation_) {
++  void observationCallback(
++      const ocs2_msgs::msg::MpcObservation::ConstSharedPtr& msg) {
++    {
++      std::lock_guard<std::mutex> lock(latestObservationMutex_);
++      latestObservation_ = ros_msg_conversions::readObservationMsg(*msg);
 +      hasObservation_ = true;
++    }
++
++    // Publish once when first observation arrives, so OCP has a valid target
++    // immediately.
++    if (!publishedInitialTarget_) {
++      publishedInitialTarget_ = true;
 +      publishTargetTrajectories();
 +    }
 +  }
 +
-+  TargetTrajectories buildSingleTarget() const {
-+    const scalar_array_t timeTrajectory{latestObservation_.time};
++  TargetTrajectories buildSingleTarget(
++      const SystemObservation& observation) const {
++    const scalar_array_t timeTrajectory{observation.time};
 +
-+    Eigen::Vector3d position(rightPose_.position.x, rightPose_.position.y, rightPose_.position.z);
-+    Eigen::Quaterniond orientation(rightPose_.orientation.w, rightPose_.orientation.x,
-+                                   rightPose_.orientation.y, rightPose_.orientation.z);
++    const Eigen::Vector3d position(rightPose_.position.x, rightPose_.position.y,
++                                   rightPose_.position.z);
++    Eigen::Quaterniond orientation(
++        rightPose_.orientation.w, rightPose_.orientation.x,
++        rightPose_.orientation.y, rightPose_.orientation.z);
 +    orientation.normalize();
 +
 +    const vector_t target = (vector_t(7) << position, orientation.coeffs()).finished();
 +    const vector_array_t stateTrajectory{target};
-+    const vector_array_t inputTrajectory{vector_t::Zero(latestObservation_.input.size())};
++    const vector_array_t inputTrajectory{
++        vector_t::Zero(observation.input.size())};
 +
 +    return {timeTrajectory, stateTrajectory, inputTrajectory};
 +  }
 +
-+  TargetTrajectories buildDualTarget() const {
-+    const scalar_array_t timeTrajectory{latestObservation_.time};
++  TargetTrajectories buildDualTarget(
++      const SystemObservation& observation) const {
++    const scalar_array_t timeTrajectory{observation.time};
 +
-+    Eigen::Vector3d rightPosition(rightPose_.position.x, rightPose_.position.y, rightPose_.position.z);
-+    Eigen::Quaterniond rightOrientation(rightPose_.orientation.w, rightPose_.orientation.x,
-+                                        rightPose_.orientation.y, rightPose_.orientation.z);
++    const Eigen::Vector3d rightPosition(rightPose_.position.x,
++                                        rightPose_.position.y,
++                                        rightPose_.position.z);
++    Eigen::Quaterniond rightOrientation(
++        rightPose_.orientation.w, rightPose_.orientation.x,
++        rightPose_.orientation.y, rightPose_.orientation.z);
 +    rightOrientation.normalize();
 +
-+    Eigen::Vector3d leftPosition(leftPose_.position.x, leftPose_.position.y, leftPose_.position.z);
-+    Eigen::Quaterniond leftOrientation(leftPose_.orientation.w, leftPose_.orientation.x,
-+                                       leftPose_.orientation.y, leftPose_.orientation.z);
++    const Eigen::Vector3d leftPosition(leftPose_.position.x, leftPose_.position.y,
++                                       leftPose_.position.z);
++    Eigen::Quaterniond leftOrientation(
++        leftPose_.orientation.w, leftPose_.orientation.x,
++        leftPose_.orientation.y, leftPose_.orientation.z);
 +    leftOrientation.normalize();
 +
 +    vector_t target(14);
 +    target << rightPosition, rightOrientation.coeffs(), leftPosition, leftOrientation.coeffs();
 +
 +    const vector_array_t stateTrajectory{target};
-+    const vector_array_t inputTrajectory{vector_t::Zero(latestObservation_.input.size())};
++    const vector_array_t inputTrajectory{
++        vector_t::Zero(observation.input.size())};
 +
 +    return {timeTrajectory, stateTrajectory, inputTrajectory};
 +  }
@@ -5438,25 +5983,36 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +      return;
 +    }
 +
-+    const auto targetTrajectories = enableDualEeTarget_ ? buildDualTarget() : buildSingleTarget();
++    SystemObservation observation;
++    {
++      std::lock_guard<std::mutex> lock(latestObservationMutex_);
++      observation = latestObservation_;
++    }
++
++    const auto targetTrajectories =
++        enableDualEeTarget_ ? buildDualTarget(observation)
++                            : buildSingleTarget(observation);
 +    targetTrajectoriesPublisher_.publishTargetTrajectories(targetTrajectories);
 +  }
 +
 + private:
-+  ros::NodeHandle& nodeHandle_;
++  rclcpp::Node::SharedPtr node_;
 +  std::string robotName_;
 +
 +  bool enableDualEeTarget_ = false;
 +  bool hasObservation_ = false;
++  bool publishedInitialTarget_ = false;
 +
-+  geometry_msgs::Pose rightPose_;
-+  geometry_msgs::Pose leftPose_;
++  geometry_msgs::msg::Pose rightPose_;
++  geometry_msgs::msg::Pose leftPose_;
 +
++  std::mutex latestObservationMutex_;
 +  SystemObservation latestObservation_;
 +
-+  ros::Subscriber observationSubscriber_;
++  rclcpp::Subscription<ocs2_msgs::msg::MpcObservation>::SharedPtr
++      observationSubscriber_;
 +
-+  std::unique_ptr<interactive_markers::InteractiveMarkerServer> interactiveMarkerServer_;
++  interactive_markers::InteractiveMarkerServer interactiveMarkerServer_;
 +  TargetTrajectoriesRosPublisher targetTrajectoriesPublisher_;
 +};
 +
@@ -5464,13 +6020,18 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +
  int main(int argc, char* argv[]) {
    const std::string robotName = "mobile_manipulator";
-   ::ros::init(argc, argv, robotName + "_target");
-   ::ros::NodeHandle nodeHandle;
+-  rclcpp::init(argc, argv);
+-  rclcpp::Node::SharedPtr node =
+-      rclcpp::Node::make_shared(robotName + "_target");
++  ::rclcpp::init(argc, argv);
++  auto node = std::make_shared<rclcpp::Node>(robotName + "_target");
  
--  TargetTrajectoriesInteractiveMarker targetPoseCommand(nodeHandle, robotName, &goalPoseToTargetTrajectories);
+-  TargetTrajectoriesInteractiveMarker targetPoseCommand(
+-      node, robotName, &goalPoseToTargetTrajectories);
 -  targetPoseCommand.publishInteractiveMarker();
-+  DualEeTargetNode node(nodeHandle, robotName);
-+  ros::spin();
++  DualEeTargetNode targetNode(node, robotName);
++  rclcpp::spin(node);
++  rclcpp::shutdown();
  
 -  // Successful exit
    return 0;
@@ -5478,7 +6039,7 @@ index 371d169584df12c1e0bac7bf9221a34e4833a746..621f7d26bbd709a0102b6ad9fb31f407
 +}
 \ No newline at end of file
 diff --git a/ocs2_ros_interfaces/include/ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h b/ocs2_ros_interfaces/include/ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h
-index d1c222f21d990c323b27d998bc2de618a7ad3f5d..d8dff4455065cf86d72e94b00cce5eb8e49d3e1b 100644
+index aa055f8d4385d250f9e242e2b97d1c188efda570..a65834ab03df40bc69a926d3eb81e5041a5de3c7 100644
 --- a/ocs2_ros_interfaces/include/ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h
 +++ b/ocs2_ros_interfaces/include/ocs2_ros_interfaces/mrt/MRT_ROS_Dummy_Loop.h
 @@ -29,6 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -5492,7 +6053,7 @@ index d1c222f21d990c323b27d998bc2de618a7ad3f5d..d8dff4455065cf86d72e94b00cce5eb8
  #include "ocs2_ros_interfaces/mrt/DummyObserver.h"
  #include "ocs2_ros_interfaces/mrt/MRT_ROS_Interface.h"
  
-@@ -39,6 +43,14 @@ namespace ocs2 {
+@@ -40,6 +44,14 @@ namespace ocs2 {
   */
  class MRT_ROS_Dummy_Loop {
   public:
@@ -5507,17 +6068,7 @@ index d1c222f21d990c323b27d998bc2de618a7ad3f5d..d8dff4455065cf86d72e94b00cce5eb8
    /**
     * Constructor.
     *
-@@ -71,6 +83,9 @@ class MRT_ROS_Dummy_Loop {
-    */
-   void subscribeObservers(const std::vector<std::shared_ptr<DummyObserver>>& observers) { observers_ = observers; }
- 
-+  /** Sets an optional external observation provider. */
-+  void setObservationProvider(ObservationProvider provider) { observationProvider_ = std::move(provider); }
-+
-  protected:
-   /**
-    * A user-defined function which modifies the observation before publishing.
-@@ -99,6 +114,8 @@ class MRT_ROS_Dummy_Loop {
+@@ -114,6 +126,8 @@ class MRT_ROS_Dummy_Loop {
  
    scalar_t mrtDesiredFrequency_;
    scalar_t mpcDesiredFrequency_;
@@ -5527,11 +6078,78 @@ index d1c222f21d990c323b27d998bc2de618a7ad3f5d..d8dff4455065cf86d72e94b00cce5eb8
  
  }  // namespace ocs2
 diff --git a/ocs2_ros_interfaces/src/mrt/MRT_ROS_Dummy_Loop.cpp b/ocs2_ros_interfaces/src/mrt/MRT_ROS_Dummy_Loop.cpp
-index d41995ae5c262e4b01190b7e71efe19272c41c63..37f2ae9cb8bdc3f3e61d7a206be77de4277b3b26 100644
+index 7a64c5bb96756ac3ee536d395507700a372c2107..fa1fe3819a4d9ca412739b0cd86443f18bbabec8 100644
 --- a/ocs2_ros_interfaces/src/mrt/MRT_ROS_Dummy_Loop.cpp
 +++ b/ocs2_ros_interfaces/src/mrt/MRT_ROS_Dummy_Loop.cpp
-@@ -104,8 +104,19 @@ void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(const SystemObservation& initObse
-       std::cout << "<<< New MPC policy starting at " << mrt_.getPolicy().timeTrajectory_.front() << "\n";
+@@ -36,12 +36,8 @@ const rclcpp::Logger LOGGER = rclcpp::get_logger("MRT_ROS_Dummy_Loop");
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+-MRT_ROS_Dummy_Loop::MRT_ROS_Dummy_Loop(MRT_ROS_Interface& mrt,
+-                                       scalar_t mrtDesiredFrequency,
+-                                       scalar_t mpcDesiredFrequency)
+-    : mrt_(mrt),
+-      mrtDesiredFrequency_(mrtDesiredFrequency),
+-      mpcDesiredFrequency_(mpcDesiredFrequency) {
++MRT_ROS_Dummy_Loop::MRT_ROS_Dummy_Loop(MRT_ROS_Interface& mrt, scalar_t mrtDesiredFrequency, scalar_t mpcDesiredFrequency)
++    : mrt_(mrt), mrtDesiredFrequency_(mrtDesiredFrequency), mpcDesiredFrequency_(mpcDesiredFrequency) {
+   if (mrtDesiredFrequency_ < 0) {
+     throw std::runtime_error("MRT loop frequency should be a positive number.");
+   }
+@@ -56,9 +52,8 @@ MRT_ROS_Dummy_Loop::MRT_ROS_Dummy_Loop(MRT_ROS_Interface& mrt,
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+-void MRT_ROS_Dummy_Loop::run(const SystemObservation& initObservation,
+-                             const TargetTrajectories& initTargetTrajectories) {
+-  RCLCPP_INFO_STREAM(LOGGER, "Waiting for the initial policy ...");
++void MRT_ROS_Dummy_Loop::run(const SystemObservation& initObservation, const TargetTrajectories& initTargetTrajectories) {
++   RCLCPP_INFO_STREAM(LOGGER, "Waiting for the initial policy ...");
+ 
+   // Reset MPC node
+   mrt_.resetMpcNode(initTargetTrajectories);
+@@ -82,27 +77,21 @@ void MRT_ROS_Dummy_Loop::run(const SystemObservation& initObservation,
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+-void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(
+-    const SystemObservation& initObservation,
+-    const TargetTrajectories& initTargetTrajectories) {
++void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(const SystemObservation& initObservation, const TargetTrajectories& initTargetTrajectories) {
+   // Determine the ratio between MPC updates and simulation steps.
+-  const auto mpcUpdateRatio =
+-      std::max(static_cast<size_t>(mrtDesiredFrequency_ / mpcDesiredFrequency_),
+-               size_t(1));
++  const auto mpcUpdateRatio = std::max(static_cast<size_t>(mrtDesiredFrequency_ / mpcDesiredFrequency_), size_t(1));
++
++  static rclcpp::Clock steadyClock(RCL_STEADY_TIME);
+ 
+   // Loop variables
+   size_t loopCounter = 0;
+   SystemObservation currentObservation = initObservation;
+ 
+   // Helper function to check if policy is updated and starts at the given time.
+-  // Due to ROS message conversion delay and very fast MPC loop, we might get an
+-  // old policy instead of the latest one.
++  // Due to ROS message conversion delay and very fast MPC loop, we might get an old policy instead of the latest one.
+   const auto policyUpdatedForTime = [this](scalar_t time) {
+-    constexpr scalar_t tol =
+-        0.1;  // policy must start within this fraction of dt
+-    return mrt_.updatePolicy() &&
+-           std::abs(mrt_.getPolicy().timeTrajectory_.front() - time) <
+-               (tol / mpcDesiredFrequency_);
++    constexpr scalar_t tol = 0.1;  // policy must start within this fraction of dt
++    return mrt_.updatePolicy() && std::abs(mrt_.getPolicy().timeTrajectory_.front() - time) < (tol / mpcDesiredFrequency_);
+   };
+ 
+   rclcpp::Rate simRate(mrtDesiredFrequency_);
+@@ -118,12 +107,23 @@ void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(
+       while (!policyUpdatedForTime(currentObservation.time) && rclcpp::ok()) {
+         mrt_.spinMRT();
+       }
+-      std::cout << "<<< New MPC policy starting at "
+-                << mrt_.getPolicy().timeTrajectory_.front() << "\n";
++      std::cout << "<<< New MPC policy starting at " << mrt_.getPolicy().timeTrajectory_.front() << "\n";
      }
  
 -    // Forward simulation
@@ -5541,9 +6159,10 @@ index d41995ae5c262e4b01190b7e71efe19272c41c63..37f2ae9cb8bdc3f3e61d7a206be77de4
 +    if (observationProvider_ && observationProvider_(currentObservation)) {
 +      const scalar_t dt = 1.0 / mrtDesiredFrequency_;
 +      if (currentObservation.time <= previousObservation.time) {
-+        ROS_WARN_STREAM_THROTTLE(1.0, "External observation time did not increase (prev=" << previousObservation.time
-+                                                                                         << ", new=" << currentObservation.time
-+                                                                                         << "). Forcing time += dt.");
++        RCLCPP_WARN_STREAM_THROTTLE(LOGGER, steadyClock, 1000,
++                                    "External observation time did not increase (prev=" << previousObservation.time
++                                                                                      << ", new=" << currentObservation.time
++                                                                                      << "). Forcing time += dt.");
 +        currentObservation.time = previousObservation.time + dt;
 +      }
 +    } else {
@@ -5552,8 +6171,47 @@ index d41995ae5c262e4b01190b7e71efe19272c41c63..37f2ae9cb8bdc3f3e61d7a206be77de4
  
      // User-defined modifications before publishing
      modifyObservation(currentObservation);
-@@ -146,8 +157,19 @@ void MRT_ROS_Dummy_Loop::realtimeDummyLoop(const SystemObservation& initObservat
-       std::cout << "<<< New MPC policy starting at " << mrt_.getPolicy().timeTrajectory_.front() << "\n";
+@@ -131,8 +131,7 @@ void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(
+     // Publish observation if at the next step we want a new policy
+     if ((loopCounter + 1) % mpcUpdateRatio == 0) {
+       mrt_.setCurrentObservation(currentObservation);
+-      std::cout << ">>> Observation is published at " << currentObservation.time
+-                << "\n";
++      std::cout << ">>> Observation is published at " << currentObservation.time << "\n";
+     }
+ 
+     // Update observers
+@@ -141,7 +140,6 @@ void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(
+     }
+ 
+     ++loopCounter;
+-    mrt_.spinMRT();
+     simRate.sleep();
+   }
+ }
+@@ -149,12 +147,12 @@ void MRT_ROS_Dummy_Loop::synchronizedDummyLoop(
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+-void MRT_ROS_Dummy_Loop::realtimeDummyLoop(
+-    const SystemObservation& initObservation,
+-    const TargetTrajectories& initTargetTrajectories) {
++void MRT_ROS_Dummy_Loop::realtimeDummyLoop(const SystemObservation& initObservation, const TargetTrajectories& initTargetTrajectories) {
+   // Loop variables
+   SystemObservation currentObservation = initObservation;
+ 
++  static rclcpp::Clock steadyClock(RCL_STEADY_TIME);
++
+   rclcpp::Rate simRate(mrtDesiredFrequency_);
+   while (rclcpp::ok()) {
+     std::cout << "### Current time " << currentObservation.time << "\n";
+@@ -164,12 +162,23 @@ void MRT_ROS_Dummy_Loop::realtimeDummyLoop(
+ 
+     // Update the policy if a new on was received
+     if (mrt_.updatePolicy()) {
+-      std::cout << "<<< New MPC policy starting at "
+-                << mrt_.getPolicy().timeTrajectory_.front() << "\n";
++      std::cout << "<<< New MPC policy starting at " << mrt_.getPolicy().timeTrajectory_.front() << "\n";
      }
  
 -    // Forward simulation
@@ -5563,9 +6221,10 @@ index d41995ae5c262e4b01190b7e71efe19272c41c63..37f2ae9cb8bdc3f3e61d7a206be77de4
 +    if (observationProvider_ && observationProvider_(currentObservation)) {
 +      const scalar_t dt = 1.0 / mrtDesiredFrequency_;
 +      if (currentObservation.time <= previousObservation.time) {
-+        ROS_WARN_STREAM_THROTTLE(1.0, "External observation time did not increase (prev=" << previousObservation.time
-+                                                                                         << ", new=" << currentObservation.time
-+                                                                                         << "). Forcing time += dt.");
++        RCLCPP_WARN_STREAM_THROTTLE(LOGGER, steadyClock, 1000,
++                                    "External observation time did not increase (prev=" << previousObservation.time
++                                                                                      << ", new=" << currentObservation.time
++                                                                                      << "). Forcing time += dt.");
 +        currentObservation.time = previousObservation.time + dt;
 +      }
 +    } else {
@@ -5574,6 +6233,42 @@ index d41995ae5c262e4b01190b7e71efe19272c41c63..37f2ae9cb8bdc3f3e61d7a206be77de4
  
      // User-defined modifications before publishing
      modifyObservation(currentObservation);
+@@ -181,8 +190,6 @@ void MRT_ROS_Dummy_Loop::realtimeDummyLoop(
+     for (auto& observer : observers_) {
+       observer->update(currentObservation, mrt_.getPolicy(), mrt_.getCommand());
+     }
+-
+-    // TODO zx rclcpp::spin_some();
+     simRate.sleep();
+   }
+ }
+@@ -190,21 +197,16 @@ void MRT_ROS_Dummy_Loop::realtimeDummyLoop(
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+-SystemObservation MRT_ROS_Dummy_Loop::forwardSimulation(
+-    const SystemObservation& currentObservation) {
++SystemObservation MRT_ROS_Dummy_Loop::forwardSimulation(const SystemObservation& currentObservation) {
+   const scalar_t dt = 1.0 / mrtDesiredFrequency_;
+ 
+   SystemObservation nextObservation;
+   nextObservation.time = currentObservation.time + dt;
+-  if (mrt_.isRolloutSet()) {  // If available, use the provided rollout as to
+-                              // integrate the dynamics.
+-    mrt_.rolloutPolicy(currentObservation.time, currentObservation.state, dt,
+-                       nextObservation.state, nextObservation.input,
++  if (mrt_.isRolloutSet()) {  // If available, use the provided rollout as to integrate the dynamics.
++    mrt_.rolloutPolicy(currentObservation.time, currentObservation.state, dt, nextObservation.state, nextObservation.input,
+                        nextObservation.mode);
+-  } else {  // Otherwise, we fake integration by interpolating the current MPC
+-            // policy at t+dt
+-    mrt_.evaluatePolicy(currentObservation.time + dt, currentObservation.state,
+-                        nextObservation.state, nextObservation.input,
++  } else {  // Otherwise, we fake integration by interpolating the current MPC policy at t+dt
++    mrt_.evaluatePolicy(currentObservation.time + dt, currentObservation.state, nextObservation.state, nextObservation.input,
+                         nextObservation.mode);
+   }
+ 
 -- 
-2.25.1
+2.43.0
 
