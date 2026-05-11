@@ -32,4 +32,42 @@ for p in "$patch_dir"/*.patch; do
   git am "$p"
 done
 
+repo_root="$(git rev-parse --show-toplevel)"
+mm_root="$repo_root/ocs2_robotic_examples/ocs2_mobile_manipulator_ros"
+dst_scripts="$mm_root/scripts"
+dst_lib="$mm_root/lib"
+
+src_toolkit="$script_dir/XRoboToolkit-PC-Service-Pybind"
+src_lib="$script_dir/lib"
+
+if [[ ! -d "$mm_root" ]]; then
+  echo "ERROR: expected target package directory not found: $mm_root" >&2
+  exit 2
+fi
+if [[ ! -d "$src_toolkit" ]]; then
+  echo "ERROR: source directory not found: $src_toolkit" >&2
+  exit 2
+fi
+if [[ ! -d "$src_lib" ]]; then
+  echo "ERROR: source directory not found: $src_lib" >&2
+  exit 2
+fi
+
+mkdir -p "$dst_scripts" "$dst_lib"
+
+echo "Copying XRoboToolkit-PC-Service-Pybind into: $dst_scripts"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a "$src_toolkit/" "$dst_scripts/$(basename "$src_toolkit")/"
+else
+  rm -rf "$dst_scripts/$(basename "$src_toolkit")"
+  cp -a "$src_toolkit" "$dst_scripts/"
+fi
+
+echo "Copying lib contents into: $dst_lib"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a "$src_lib/" "$dst_lib/"
+else
+  cp -a "$src_lib/." "$dst_lib/"
+fi
+
 echo "Done."

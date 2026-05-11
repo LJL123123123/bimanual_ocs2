@@ -7,13 +7,18 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./update_patches.sh [--ocs2 <path-to-ocs2-repo>] [--base <base-commit>]
+  ./update_patches.sh [--ocs2 <path-to-ocs2-repo>] [--base <base-commit>] [--allow-untracked]
 
 Behavior:
   - Validates the ocs2 repo exists and is clean (no uncommitted changes)
   - Validates <base-commit> is an ancestor of ocs2/HEAD
   - Deletes existing patches/*.patch
   - Recreates patches using: git format-patch --binary <base>..HEAD
+
+Options:
+  --allow-untracked
+    Allow untracked files/dirs in the ocs2 repo (still rejects any tracked
+    modifications, staged changes, or unmerged paths).
 
 Defaults:
   --ocs2 defaults to "../src/ocs2" relative to this patch repo.
@@ -32,6 +37,7 @@ base_file="$script_dir/.base_commit"
 default_ocs2="$script_dir/../ocs2"
 ocs2_repo="$default_ocs2"
 base_commit=""
+allow_untracked=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -39,6 +45,8 @@ while [[ $# -gt 0 ]]; do
       ocs2_repo="${2:-}"; shift 2;;
     --base)
       base_commit="${2:-}"; shift 2;;
+    --allow-untracked)
+      allow_untracked=true; shift;;
     -h|--help)
       usage; exit 0;;
     *)
@@ -75,10 +83,21 @@ if ! git -C "$ocs2_repo" cat-file -e "$base_commit^{commit}" 2>/dev/null; then
 fi
 
 # Ensure clean working tree in ocs2 repo so patches match commits
-if [[ -n "$(git -C "$ocs2_repo" status --porcelain)" ]]; then
+# By default we require an entirely clean repo (including untracked files).
+# With --allow-untracked we only reject tracked changes.
+status_args=(--porcelain)
+if $allow_untracked; then
+  status_args+=(--untracked-files=no)
+fi
+
+dirty_status="$(git -C "$ocs2_repo" status "${status_args[@]}")"
+if [[ -n "$dirty_status" ]]; then
   echo "ERROR: ocs2 working tree is not clean: $ocs2_repo" >&2
   echo "       Commit/stash your changes first, then re-run." >&2
-  git -C "$ocs2_repo" status --porcelain >&2
+  if $allow_untracked; then
+    echo "       (Note: --allow-untracked is set; only tracked changes are shown below.)" >&2
+  fi
+  printf '%s\n' "$dirty_status" >&2
   exit 2
 fi
 
